@@ -1,0 +1,6 @@
+cHFl52dULmNk8OoKCShfd6WdxqlD+HJRkxPezBbmk1A=	+tJYTAbxDVzZ8a/WIgKkCoNBeXrX451uuqlW7V5NnlY=	51823	4	40	70	15	18	20	23	100000-199999	200000-299999	300000-399999	400000-499999	<b 0xc6000000010801> <r 16> <c> <t>	<r 32>	<rc 8>	<rd 4>	<b 0xdeadbeef>	kGvokoudkDy4Oc9m8UeLE8OBSKrhbNhxOLydN5Np6Vw=	4-16	110	4	170	9	15	on	on	off
+ij+isP0PDb6e0Qlejysg6hgcy+izwRa/mw/RMnbUGGk=	wY6yc+47yV+7NrIKbYTEnsMRTfnkTXkf8rP1u41TbAw=	172.20.0.3:51824	10.67.0.2/32	1790709091	567	874	off
+lLks0INSyThw+sM+JDZYt0a4kCk7Tj9EckexdWncqxg=	(none)	(none)	10.67.0.8/30,10.67.0.12/30	0	0	0	off
+lj1uEIQdYBX+h1aAi5yfinsbMHv5tmQGqm/iPLthKj4=	pjLJpdDVySwpEs2bu1kTLlXWHI8qmmaEdH/0Ti0S0ME=	172.20.0.250:51820	10.67.0.20/32	0	0	1247	25
+GSp+2CtxxUfOMjfp2hpw620fKbYgjeixIxXsYpJGHwU=	(none)	[2001:db8::1]:51820	10.67.0.21/32	0	0	0	off
+69czXD28b5Q4ZYoy4db3vDKtpmmhZ76OkFeKhqzX7F0=	(none)	(none)	(none)	0	0	0	off

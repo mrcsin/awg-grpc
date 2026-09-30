@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package awg.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/mrcsin/awg-grpc/gen/awg/v1;awgv1";
+
+// ManagementService manages the peers of the AmneziaWG interfaces owned by this
+// container. Interfaces come up from the container's own configuration; this API
+// reads them but never creates or changes them. Every method returns INTERNAL
+// when a tool fails, its output does not parse or a handler panics, and
+// DEADLINE_EXCEEDED or CANCELED when the deadline passes or the caller cancels.
+service ManagementService {
+  // ApplyPeers makes the peer set of one interface equal to the desired list.
+  // Errors: NOT_FOUND for an unknown interface; FAILED_PRECONDITION for a
+  // configured interface missing from the kernel; INVALID_ARGUMENT for a malformed
+  // or all-zero key, a malformed CIDR, a prefix that is not IPv4, a duplicate
+  // public key, a key equal to the interface's own key, overlapping addresses, an
+  // address outside the interface addresses or covering one of them, an empty
+  // list without allow_empty, or more than 1000 peers. INVALID_ARGUMENT rejects
+  // the whole list and leaves the kernel untouched; its message names the peer
+  // index and, once the key parses, the base64 public key, never a preshared key.
+  // INTERNAL after the change started means the kernel may hold part of it; the
+  // next full apply converges it.
+  rpc ApplyPeers(ApplyPeersRequest) returns (ApplyPeersResponse);
+
+  // ListPeers reports the peers the kernel currently holds for one interface.
+  // Errors: NOT_FOUND for an unknown interface; FAILED_PRECONDITION for a
+  // configured interface missing from the kernel.
+  rpc ListPeers(ListPeersRequest) returns (ListPeersResponse);
+
+  // GetStatus reports versions and the state of every configured interface.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+}
+
+message Peer {
+  // 32-byte Curve25519 public key.
+  bytes public_key = 1;
+  // 32-byte preshared key; required.
+  bytes preshared_key = 2;
+  // Single IPv4 CIDR in network form (host bits zero), e.g. "10.8.1.7/32".
+  string allowed_ip = 3;
+}
+
+message ApplyPeersRequest {
+  string interface_name = 1;
+  repeated Peer peers = 2;
+  // Computes and returns the changes without applying them.
+  bool dry_run = 3;
+  // Permits an empty peers list, which removes every peer of the interface.
+  bool allow_empty = 4;
+}
+
+// A real apply returns the difference between the kernel peer set before and
+// after the change; a dry run returns the planned difference between the kernel
+// and the desired list. Each list is sorted by the raw key bytes.
+message ApplyPeersResponse {
+  repeated bytes added = 1;
+  repeated bytes removed = 2;
+  // Peers whose preshared key or allowed IP changed.
+  repeated bytes updated = 3;
+}
+
+message ListPeersRequest {
+  string interface_name = 1;
+}
+
+message ListPeersResponse {
+  repeated PeerStatus peers = 1;
+}
+
+// PeerStatus never carries the preshared key.
+message PeerStatus {
+  bytes public_key = 1;
+  // The kernel may hold several CIDRs for a peer configured by another tool.
+  repeated string allowed_ips = 2;
+  // "ip:port" learned from the last authenticated packet; empty until the first one.
+  string endpoint = 3;
+  // Unset when the peer has never completed a handshake.
+  google.protobuf.Timestamp last_handshake = 4;
+  uint64 rx_bytes = 5;
+  uint64 tx_bytes = 6;
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  string wrapper_version = 1;
+  // Bare version from `awg --version`, read once at start, e.g. "3.1.20260812".
+  string tools_version = 2;
+  // Content of /sys/module/amneziawg/version without surrounding whitespace, read
+  // on every call; empty when the module is not loaded.
+  string module_version = 3;
+  repeated InterfaceStatus interfaces = 4;
+}
+
+message InterfaceStatus {
+  string name = 1;
+  // False when the interface is configured but missing from the kernel; then
+  // name is the only other field set.
+  bool present = 2;
+  bytes public_key = 3;
+  uint32 listen_port = 4;
+  uint32 peer_count = 5;
+  // CIDRs assigned to the interface, e.g. "10.8.1.1/24".
+  repeated string addresses = 6;
+  // Interface parameters for a client config, in `awg showconf` order: everything
+  // except PrivateKey, ListenPort and FwMark, and without keys set to 0 or off.
+  // Carries HeaderProtectionKey, a secret shared with every client.
+  repeated ConfigParam client_params = 7;
+}
+
+message ConfigParam {
+  // "Jc", "H1", "HeaderProtectionKey".
+  string key = 1;
+  // "4", "100000-100999", a base64 key.
+  string value = 2;
+}

@@ -1,0 +1,9 @@
+.git
+.smoke
+.zed
+.idea
+.vs
+deploy
+docs
+*.swp
+.DS_Store

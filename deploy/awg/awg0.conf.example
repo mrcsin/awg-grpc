@@ -1,0 +1,24 @@
+# Copy to awg0.conf; the file name is the interface name. [Interface] only: peers come from the
+# API, and a [Peer] section stops the container at start.
+[Interface]
+# Output of `awg genkey`.
+PrivateKey = <private key>
+# Every peer address must lie inside this subnet.
+Address = 10.8.1.1/24
+ListenPort = 51820
+
+# Obfuscation parameters. Choose your own values; GetStatus returns them in client_params, and
+# clients must use the same ones. Add the 2.0, 3.0 and 3.1 keys the host module supports.
+Jc = 4
+Jmin = 40
+Jmax = 70
+S1 = 15
+S2 = 18
+H1 = 100000-199999
+H2 = 200000-299999
+H3 = 300000-399999
+H4 = 400000-499999
+
+# NAT for client traffic; iptables runs inside the container network namespace.
+PostUp = iptables -t nat -A POSTROUTING -s 10.8.1.0/24 -o eth0 -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -s 10.8.1.0/24 -o eth0 -j MASQUERADE

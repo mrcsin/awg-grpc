@@ -1,0 +1,23 @@
+services:
+  awg:
+    image: ghcr.io/mrcsin/awg-grpc:v0.1.0
+    restart: unless-stopped
+    # Docker's init is PID 1 and reaps orphans of awg-quick and PostUp commands.
+    init: true
+    cap_add: [NET_ADMIN]
+    # Lets the interfaces route client traffic; the tunnels carry IPv4 only.
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    # awg gets one pipe per preshared key; 1000 peers come close to the default soft limit of 1024.
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    ports:
+      - "51820:51820/udp"
+    volumes:
+      # One <interface>.conf per interface, [Interface] only; see awg/awg0.conf.example.
+      - ./awg:/etc/amnezia/amneziawg:ro
+      - awg-sock:/run/awg-grpc
+    environment:
+      AWG_GRPC_SOCKET_GID: "1000"
+volumes:
+  awg-sock:

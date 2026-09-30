@@ -1,0 +1,36 @@
+# Smoke test of the runtime image, driven by test/smoke (CLAUDE.md, Test). Publishes no port.
+name: awgsmoke
+services:
+  awg:
+    build:
+      context: ..
+      target: runtime
+    image: awg-grpc:local
+    # Docker's init is PID 1 and reaps orphans of awg-quick and PostUp commands.
+    init: true
+    cap_add: [NET_ADMIN]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    # awg gets one pipe per preshared key; 1000 peers come close to the default soft limit of 1024.
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    volumes:
+      - ./smoke:/etc/amnezia/amneziawg:ro
+      - ../.smoke/sock:/run/awg-grpc
+    environment:
+      AWG_GRPC_SOCKET_GID: ${SMOKE_GID:?set SMOKE_GID to the group that may open the socket}
+  # Handshake peer of the smoke test; test/smoke writes its config to ../.smoke/client.
+  client:
+    profiles: [handshake]
+    image: awg-grpc:local
+    init: true
+    cap_add: [NET_ADMIN]
+    # The image healthcheck probes the wrapper socket, which the client does not serve. This one
+    # turns healthy once awg-quick up succeeded, so up --wait returns with the tunnel configured.
+    healthcheck:
+      test: ["CMD", "test", "-e", "/run/awgc0-up"]
+      interval: 1s
+      retries: 30
+    entrypoint: ["sh", "-c", "awg-quick up awgc0 && touch /run/awgc0-up && sleep infinity"]
+    volumes:
+      - ../.smoke/client:/etc/amnezia/amneziawg:ro

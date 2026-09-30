@@ -1,0 +1,9 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vs/
+
+# Smoke test state: the socket directory and the client config with a throwaway key
+.smoke/
