@@ -30,8 +30,7 @@ Container smoke test of the runtime image, on the same kind of host, with Docker
 go test -tags smoke -count=1 -v ./test/smoke/
 ```
 
-`TestMain` builds and starts the image; with `SMOKE_NO_BUILD=1` it starts the existing
-`awg-grpc:local` image instead. `TestSmoke` then runs its subtests in order: `status`, `handshake`
+`TestMain` builds and starts the image. `TestSmoke` then runs its subtests in order: `status`, `handshake`
 (a second container connects with a config built from `GetStatus.client_params`), `restart`,
 `interface loss` and `stop`. `TestMain` takes the compose project down at the end and before it
 starts.
@@ -67,15 +66,14 @@ Enable the pre-commit hook per clone: `git config core.hooksPath scripts/git-hoo
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every pull request, every push to `master` and every `v*` tag.
-A new push to a pull request cancels its running run. Actions are pinned to commit SHAs.
+`.github/workflows/ci.yml` runs on every pull request and every push to `master`. A new push to a
+pull request cancels its running run. Actions are pinned to commit SHAs.
 
 - `check`: `scripts/format.sh`, `go test -race`, shellcheck.
-- `kernel`: loads the pinned module, runs the integration suite, builds the runtime image once and
-  runs `TestSmoke` on it with `SMOKE_NO_BUILD=1`. On a `v*` tag it saves the image as a workflow
-  artifact.
-- `publish`: on a `v*` tag, loads that artifact and pushes the tested image as
-  `ghcr.io/mrcsin/awg-grpc:<tag>`.
+- `kernel`: loads the pinned module, runs the integration suite, then `TestSmoke`.
+
+`.github/workflows/release.yml` runs on a `v*` tag push: it builds the runtime image, pushes
+`ghcr.io/mrcsin/awg-grpc:<tag>` and creates the GitHub release with the notes of the annotated tag.
 
 The module pin is `AWG_MODULE_REF` in `ci.yml`. `TestSmoke/status` fails unless the tools version
 equals the module version.
@@ -125,7 +123,7 @@ testdata/              fixtures: dump outputs, showconf outputs, integration int
 scripts/format.sh      the Format chain (see Format)
 scripts/git-hooks/     pre-commit hook: branch guard, then scripts/format.sh
 scripts/ci/module.sh   builds and loads the pinned kernel module in the CI kernel job
-.github/workflows/     ci.yml (see CI)
+.github/workflows/     ci.yml and release.yml (see CI)
 Dockerfile             stages: tools, build, integration, runtime
 buf.yaml, buf.gen.yaml buf module, lint and generation config
 ```

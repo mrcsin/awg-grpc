@@ -35,8 +35,8 @@ not privileged and does not mount the Docker socket.
 
 ## Image tags
 
-A `v*` git tag publishes the image as `ghcr.io/mrcsin/awg-grpc:<tag>`. There is no `latest`, so
-pin the exact tag.
+A `v*` git tag publishes the image as `ghcr.io/mrcsin/awg-grpc:<tag>` and creates a GitHub
+release with the notes of the annotated tag. There is no `latest`, so pin the exact tag.
 
 ## Configuration
 

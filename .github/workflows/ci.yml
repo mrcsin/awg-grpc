@@ -4,13 +4,12 @@ on:
   pull_request:
   push:
     branches: [master]
-    tags: ['v*']
 
 permissions:
   contents: read
 
 # Runs of one pull request share a group, so a newer push cancels the running one. Every other run
-# gets a group of its own: a queued master or tag run is never cancelled or replaced.
+# gets a group of its own: a queued master run is never cancelled or replaced.
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
@@ -80,59 +79,5 @@ jobs:
           docker run --rm --cap-add NET_ADMIN --ulimit nofile=65536:65536 awg-grpc:it \
             go test -tags integration -count=1 -v ./...
 
-      - name: build runtime image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: .
-          target: runtime
-          load: true
-          tags: awg-grpc:local
-          build-args: VERSION=${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'dev' }}
-          cache-from: type=gha,scope=runtime
-          cache-to: type=gha,scope=runtime,mode=max
-
       - name: smoke test
-        env:
-          SMOKE_NO_BUILD: '1'
         run: go test -tags smoke -count=1 -v ./test/smoke/
-
-      # publish pushes these bytes, the image that passed the smoke test, without a rebuild.
-      - name: save image
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        run: docker save -o awg-grpc.tar awg-grpc:local
-
-      - name: upload image
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: image
-          path: awg-grpc.tar
-
-  publish:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: kernel
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: image
-
-      - name: load image
-        run: docker load -i awg-grpc.tar
-
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: tag and push
-        env:
-          IMAGE: ghcr.io/mrcsin/awg-grpc:${{ github.ref_name }}
-        run: |
-          docker tag awg-grpc:local "$IMAGE"
-          docker push "$IMAGE"

@@ -53,14 +53,8 @@ func runMain(m *testing.M) int {
 	}
 	defer down()
 
-	// SMOKE_NO_BUILD=1 starts the awg-grpc:local image that already exists, so CI tests the image
-	// it publishes.
-	build := "--build"
-	if os.Getenv("SMOKE_NO_BUILD") == "1" {
-		build = "--no-build"
-	}
-	out, err := composeCmd("up", "-d", build, "--wait", "awg").CombinedOutput()
-	fmt.Fprintf(os.Stderr, "docker compose up %s:\n%s\n", build, out)
+	out, err := composeCmd("up", "-d", "--build", "--wait", "awg").CombinedOutput()
+	fmt.Fprintf(os.Stderr, "docker compose up:\n%s\n", out)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "docker compose up: %v\n", err)
 		printLogs()
