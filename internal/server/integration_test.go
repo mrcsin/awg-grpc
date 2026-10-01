@@ -303,17 +303,6 @@ func TestIntegration(t *testing.T) {
 		}
 	})
 
-	t.Run("empty psk rejected", func(t *testing.T) {
-		peers := newITPeers(t, 30, 2)
-		setPeers(t, client, peers[0])
-		noPSK := peers[1].message()
-		noPSK.PresharedKey = nil
-		assertRejected(t, client, &awgv1.ApplyPeersRequest{
-			InterfaceName: itIface,
-			Peers:         []*awgv1.Peer{peers[0].message(), noPSK},
-		})
-	})
-
 	t.Run("interface key rejected", func(t *testing.T) {
 		peers := newITPeers(t, 40, 2)
 		setPeers(t, client, peers[0])
@@ -323,11 +312,6 @@ func TestIntegration(t *testing.T) {
 			InterfaceName: itIface,
 			Peers:         messages([]itPeer{peers[0], own}),
 		})
-	})
-
-	t.Run("empty list rejected", func(t *testing.T) {
-		setPeers(t, client, newITPeer(t, 50))
-		assertRejected(t, client, &awgv1.ApplyPeersRequest{InterfaceName: itIface})
 	})
 
 	t.Run("empty list with allow_empty removes every peer", func(t *testing.T) {

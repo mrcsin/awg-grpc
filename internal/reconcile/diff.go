@@ -2,7 +2,6 @@ package reconcile
 
 import (
 	"bytes"
-	"net/netip"
 	"slices"
 
 	"github.com/mrcsin/awg-grpc/internal/awg"
@@ -17,7 +16,7 @@ type Changes struct {
 }
 
 // Diff compares two peer sets keyed by public key. A peer present in both is updated when its
-// preshared key or its set of allowed IPs differs; endpoint, handshake and counters are ignored.
+// preshared key or its allowed IP list differs; endpoint, handshake and counters are ignored.
 func Diff(from, to []awg.Peer) Changes {
 	before := byPublicKey(from)
 	changes := Changes{Added: []awg.Key{}, Removed: []awg.Key{}, Updated: []awg.Key{}}
@@ -29,7 +28,7 @@ func Diff(from, to []awg.Peer) Changes {
 		case !ok:
 			changes.Added = append(changes.Added, p.PublicKey)
 		case !samePresharedKey(old.PresharedKey, p.PresharedKey) ||
-			!samePrefixSet(old.AllowedIPs, p.AllowedIPs):
+			!slices.Equal(old.AllowedIPs, p.AllowedIPs):
 			changes.Updated = append(changes.Updated, p.PublicKey)
 		}
 	}
@@ -58,19 +57,4 @@ func samePresharedKey(a, b *awg.PresharedKey) bool {
 		return a == b
 	}
 	return *a == *b
-}
-
-func samePrefixSet(a, b []netip.Prefix) bool {
-	setA := make(map[netip.Prefix]bool, len(a))
-	for _, p := range a {
-		setA[p] = true
-	}
-	setB := make(map[netip.Prefix]bool, len(b))
-	for _, p := range b {
-		if !setA[p] {
-			return false
-		}
-		setB[p] = true
-	}
-	return len(setA) == len(setB)
 }

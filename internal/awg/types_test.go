@@ -104,17 +104,10 @@ func assertRedacted(t *testing.T, out string) {
 	}
 }
 
-func TestPresharedKeyBytes(t *testing.T) {
-	raw := mustKey(t, fixturePSK)
-	psk := NewPresharedKey(raw)
-
-	got := psk.Bytes()
-	if !bytes.Equal(got, raw[:]) {
-		t.Fatalf("Bytes() = %x, want %x", got, raw)
-	}
-	got[0] ^= 0xff
-	if psk.Bytes()[0] != raw[0] {
-		t.Fatal("mutating the Bytes() result changed the key")
+func TestPresharedKeyKeyFile(t *testing.T) {
+	psk := mustPSK(t, fixturePSK)
+	if got, want := string(psk.KeyFile()), fixturePSK+"\n"; got != want {
+		t.Fatalf("KeyFile() = %q, want %q", got, want)
 	}
 }
 

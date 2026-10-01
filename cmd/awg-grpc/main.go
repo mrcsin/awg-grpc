@@ -24,14 +24,14 @@ func dispatch(args []string, getenv func(string) string, stderr io.Writer) int {
 		fmt.Fprintln(stderr, usage)
 		return 2
 	}
+	if args[0] == "healthcheck" {
+		return healthcheck(context.Background(), socketFile, stderr)
+	}
 	logger := slog.New(slog.NewTextHandler(stderr, nil))
 	cfg, err := configFromEnv(getenv)
 	if err != nil {
 		logger.Error("reading configuration", "error", err)
 		return 1
-	}
-	if args[0] == "healthcheck" {
-		return healthcheck(context.Background(), cfg.Socket, stderr)
 	}
 	return serve(cfg, logger)
 }

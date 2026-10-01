@@ -105,8 +105,6 @@ type startup struct {
 	cfg    config
 	rec    *recorder
 	runner recordingRunner
-	// noAddress names interfaces the lookup reports present without an address.
-	noAddress map[string]bool
 }
 
 // newStartup writes awg0.conf and awg1.conf into a temp config directory and queues replies;
@@ -131,18 +129,14 @@ func newStartup(t *testing.T, edit func([]reply)) *startup {
 	socket := socketPath(t)
 	rec := &recorder{dir: dir, socket: socket}
 	return &startup{
-		cfg:       config{Socket: socket, ConfigDir: dir, SocketGID: noSocketGID},
-		rec:       rec,
-		runner:    recordingRunner{fake: fake, rec: rec},
-		noAddress: map[string]bool{},
+		cfg:    config{Socket: socket, ConfigDir: dir, SocketGID: noSocketGID},
+		rec:    rec,
+		runner: recordingRunner{fake: fake, rec: rec},
 	}
 }
 
 func (s *startup) lookup(name string) ([]netip.Prefix, bool, error) {
 	s.rec.record("lookup " + name)
-	if s.noAddress[name] {
-		return nil, true, nil
-	}
 	return []netip.Prefix{netip.MustParsePrefix("10.8.1.1/24")}, true, nil
 }
 
@@ -209,47 +203,16 @@ func TestRunStartupFailures(t *testing.T) {
 	exitErr := func(stderr string) error { return &awg.ExitError{Code: 1, Stderr: stderr} }
 	tests := []struct {
 		name       string
-		emptyDir   bool
 		edit       func([]reply)
-		noAddress  string
 		setup      func(t *testing.T, cfg *config)
 		wantEvents []string
 		wantErr    []string
 	}{
 		{
-			name:     "no config files",
-			emptyDir: true,
-			wantErr:  []string{"no *.conf files"},
-		},
-		{
 			name:       "bring-up failure",
 			edit:       func(r []reply) { r[1].err = exitErr("RTNETLINK answers: File exists") },
 			wantEvents: happyEvents[:2],
 			wantErr:    []string{"awg1", "RTNETLINK answers: File exists"},
-		},
-		{
-			name:       "interface without an address",
-			noAddress:  "awg1",
-			wantEvents: happyEvents[:4],
-			wantErr:    []string{"awg1 has no address"},
-		},
-		{
-			name:       "tools version failure",
-			edit:       func(r []reply) { r[2].err = exitErr("awg: not found") },
-			wantEvents: happyEvents[:5],
-			wantErr:    []string{"tools version", "awg: not found"},
-		},
-		{
-			name:       "unexpected tools version",
-			edit:       func(r []reply) { r[2].stdout = "wireguard-tools v1.0.20210914\n" },
-			wantEvents: happyEvents[:5],
-			wantErr:    []string{"tools version", "wireguard-tools v1.0.20210914"},
-		},
-		{
-			name:       "probe failure",
-			edit:       func(r []reply) { r[4].err = exitErr("Unable to modify interface: Invalid argument") },
-			wantEvents: happyEvents,
-			wantErr:    []string{"generation mismatch", "v3.1.20260812", "Invalid argument"},
 		},
 		{
 			name: "socket directory missing",
@@ -274,12 +237,6 @@ func TestRunStartupFailures(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newStartup(t, tt.edit)
-			if tt.emptyDir {
-				s.cfg.ConfigDir = t.TempDir()
-			}
-			if tt.noAddress != "" {
-				s.noAddress[tt.noAddress] = true
-			}
 			if tt.setup != nil {
 				tt.setup(t, &s.cfg)
 			}

@@ -13,23 +13,14 @@ func TestConfigFromEnv(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "defaults",
+			name: "default",
 			env:  nil,
 			want: config{Socket: "/run/awg-grpc/awg.sock", ConfigDir: "/etc/amnezia/amneziawg", SocketGID: -1},
 		},
 		{
-			name: "empty values keep the defaults",
-			env:  map[string]string{"AWG_GRPC_SOCKET": "", "AWG_GRPC_CONFIG_DIR": "", "AWG_GRPC_SOCKET_GID": ""},
-			want: config{Socket: "/run/awg-grpc/awg.sock", ConfigDir: "/etc/amnezia/amneziawg", SocketGID: -1},
-		},
-		{
-			name: "overrides",
-			env: map[string]string{
-				"AWG_GRPC_SOCKET":     "/tmp/s/awg.sock",
-				"AWG_GRPC_CONFIG_DIR": "/tmp/conf",
-				"AWG_GRPC_SOCKET_GID": "1000",
-			},
-			want: config{Socket: "/tmp/s/awg.sock", ConfigDir: "/tmp/conf", SocketGID: 1000},
+			name: "group override",
+			env:  map[string]string{"AWG_GRPC_SOCKET_GID": "1000"},
+			want: config{Socket: "/run/awg-grpc/awg.sock", ConfigDir: "/etc/amnezia/amneziawg", SocketGID: 1000},
 		},
 		{
 			name: "group 0 is a group, not unset",

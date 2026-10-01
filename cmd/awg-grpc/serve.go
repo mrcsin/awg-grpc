@@ -42,7 +42,6 @@ func run(ctx context.Context, cfg config, runner awg.Runner, lookup server.Looku
 	if err != nil {
 		return err
 	}
-	defer removeSocket(cfg.Socket, logger)
 
 	srv := server.NewGRPCServer(runner, lookup, names, server.Versions{
 		Wrapper:           version,
@@ -84,11 +83,4 @@ func listen(cfg config) (net.Listener, error) {
 		}
 	}
 	return lis, nil
-}
-
-// Closing the listener usually has already removed the socket file.
-func removeSocket(path string, logger *slog.Logger) {
-	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		logger.Warn("removing socket", "error", err)
-	}
 }

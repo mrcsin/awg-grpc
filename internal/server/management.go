@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strings"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	awgv1 "github.com/mrcsin/awg-grpc/gen/awg/v1"
@@ -235,7 +237,7 @@ func (m *Management) readClientParams(ctx context.Context, name string) ([]*awgv
 func (m *Management) resolve(name string) (*configuredInterface, error) {
 	iface, ok := m.interfaces[name]
 	if !ok {
-		return nil, &unknownInterfaceError{name: name}
+		return nil, status.Errorf(codes.NotFound, "interface %q is not configured", name)
 	}
 	return iface, nil
 }
@@ -246,7 +248,7 @@ func (m *Management) addresses(name string) ([]netip.Prefix, error) {
 		return nil, fmt.Errorf("looking up interface %s: %w", name, err)
 	}
 	if !present {
-		return nil, &absentInterfaceError{name: name}
+		return nil, status.Errorf(codes.FailedPrecondition, "interface %s is configured but missing from the kernel", name)
 	}
 	return addrs, nil
 }
@@ -264,7 +266,7 @@ func (m *Management) readDump(ctx context.Context, name string) (awg.Device, err
 }
 
 func peerStatus(p awg.Peer) *awgv1.PeerStatus {
-	status := &awgv1.PeerStatus{
+	st := &awgv1.PeerStatus{
 		PublicKey:  p.PublicKey[:],
 		AllowedIps: awg.PrefixStrings(p.AllowedIPs),
 		Endpoint:   p.Endpoint,
@@ -272,9 +274,9 @@ func peerStatus(p awg.Peer) *awgv1.PeerStatus {
 		TxBytes:    p.TxBytes,
 	}
 	if !p.LastHandshake.IsZero() {
-		status.LastHandshake = timestamppb.New(p.LastHandshake)
+		st.LastHandshake = timestamppb.New(p.LastHandshake)
 	}
-	return status
+	return st
 }
 
 func keysToBytes(keys []awg.Key) [][]byte {

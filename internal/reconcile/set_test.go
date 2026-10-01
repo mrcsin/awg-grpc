@@ -162,10 +162,19 @@ func assertArgsHideKeys(t *testing.T, args []string, peerSets ...[]awg.Peer) {
 	for _, peers := range peerSets {
 		for _, p := range peers {
 			if p.PresharedKey != nil {
-				assertNoKeyText(t, joined, p.PresharedKey.Bytes())
+				assertNoKeyText(t, joined, pskBytes(t, p.PresharedKey))
 			}
 		}
 	}
+}
+
+func pskBytes(t *testing.T, k *awg.PresharedKey) []byte {
+	t.Helper()
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSuffix(string(k.KeyFile()), "\n"))
+	if err != nil {
+		t.Fatalf("decoding KeyFile: %v", err)
+	}
+	return raw
 }
 
 // assertCIDRsCanonical checks that every allowed-ips value is the prefix String form of the

@@ -31,8 +31,8 @@ integration suite calls the same function.
 5. `serve` removes a stale socket file, listens, and sets the socket mode and group.
 6. `server.NewGRPCServer` builds the server with the recovery interceptor, `ManagementService` and
    the health service.
-7. When the context ends, `serve` calls `GracefulStop` and removes the socket file. The interfaces
-   stay up until the network namespace goes away.
+7. When the context ends, `serve` calls `GracefulStop`, which closes the listener, and closing the
+   listener removes the socket file. The interfaces stay up until the network namespace goes away.
 
 ## Data flow
 
@@ -59,3 +59,11 @@ each call and ignores the service name; `List` and `Watch` return `UNIMPLEMENTED
 - gRPC over HTTP and JSON: one generated schema serves both sides.
 - One socket per container: versions and health belong to the container, not to an interface.
 - The contract lives with the implementer: it is AmneziaWG-specific, so this repository owns it.
+
+## Locked decisions
+
+- One `awg set` with only the changed peers, never `setconf` or `syncconf` ([apply.md](./apply.md#awg-set-never-setconf-or-syncconf)).
+- gRPC on one socket per container, contract in this repository ([Design choices](#design-choices)).
+- Tools built from source, not taken from the vendor image ([top of this page](#awg-grpc-overview)).
+- Client parameters as opaque ordered pairs ([apply.md](./apply.md#client-parameters)).
+- The start fails on a module older than the tools ([apply.md](./apply.md#generation-probe)).
