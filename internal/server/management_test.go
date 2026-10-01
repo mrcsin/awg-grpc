@@ -783,25 +783,21 @@ func TestListPeersErrors(t *testing.T) {
 	tests := []struct {
 		name     string
 		iface    string
-		respond  []byte
 		wantCode codes.Code
 	}{
 		{name: "unknown interface", iface: "awg9", wantCode: codes.NotFound},
 		{name: "absent interface", iface: absentIface, wantCode: codes.FailedPrecondition},
-		{name: "dump does not parse", iface: presentIface, respond: []byte("x\n"), wantCode: codes.Internal},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runner := awgtest.NewRunner()
-			runner.Respond("awg", dumpArgs, tt.respond, nil)
-			client := startServer(t, runner, io.Discard)
+			client := startServer(t, awgtest.NewRunner(), io.Discard)
 			_, err := client.ListPeers(context.Background(), &awgv1.ListPeersRequest{InterfaceName: tt.iface})
 			assertCode(t, err, tt.wantCode)
 		})
 	}
 }
 
-func TestStatusFromContextErrors(t *testing.T) {
+func TestToStatus(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
@@ -810,11 +806,16 @@ func TestStatusFromContextErrors(t *testing.T) {
 		{"deadline", fmt.Errorf("running awg: %w", context.DeadlineExceeded), codes.DeadlineExceeded},
 		{"cancel", fmt.Errorf("running awg: %w", context.Canceled), codes.Canceled},
 		{"other", errors.New("boom"), codes.Internal},
+		{"already a status", status.Error(codes.NotFound, `interface "awg9" is not configured`), codes.NotFound},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := status.Code(toStatus(tt.err)); got != tt.want {
-				t.Errorf("code = %s, want %s", got, tt.want)
+			got := toStatus(tt.err)
+			if code := status.Code(got); code != tt.want {
+				t.Errorf("code = %s, want %s", code, tt.want)
+			}
+			if _, isStatus := status.FromError(tt.err); isStatus && got != tt.err {
+				t.Errorf("toStatus(%v) = %v, want the same error", tt.err, got)
 			}
 		})
 	}

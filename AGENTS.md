@@ -15,8 +15,6 @@ docker build --build-arg VERSION=dev -t awg-grpc:local .   # target runtime
 | --------------- | --------------------------------------------------------------------------------- |
 | `VERSION`       | the `wrapper_version` that `GetStatus` reports                                    |
 | `AWG_TOOLS_REF` | `amneziawg-tools` commit built from source; must match the host module generation |
-| `ALPINE_IMAGE`  | base of the `tools` and `runtime` stages                                          |
-| `GOLANG_IMAGE`  | base of the `build` and `integration` stages                                      |
 
 ## Test
 
@@ -29,6 +27,11 @@ docker build --target integration -t awg-grpc:it . \
 Table-driven tests sit beside the source as `*_test.go`. Tests that need Linux (`/dev/fd`, unix
 socket modes) carry `//go:build linux`; the integration suite carries `//go:build integration` and
 runs only inside the `integration` image stage on a host with the `amneziawg` module loaded.
+
+Tests in `internal/awg` and `internal/server` read `../../testdata`, so a test binary built with
+`go test -c` runs from its package directory. To copy the tree from macOS to a Linux host, use
+`COPYFILE_DISABLE=1 tar --no-xattrs`: plain macOS tar adds `._*.conf` AppleDouble files that
+`node.Discover` rejects.
 
 Container smoke test of the runtime image, on the same kind of host, with Docker compose. It uses
 `deploy/compose.smoke.yml` and the interface `awgsmoke0` from `deploy/smoke/`:
@@ -105,8 +108,8 @@ These rules keep preshared keys and request strings out of commands and logs;
 - No request string reaches argv. Arguments are rebuilt from validated values: the interface name
   from the configured interface that `Management.resolve` returns, keys from 32 bytes, CIDRs from
   parsed prefixes.
-- In production code only `reconcile.pskFileContent`, which `BuildSet` calls, reads
-  `awg.PresharedKey.Bytes()`. The key sits in an unexported field, so no other path reaches it.
+- Outside package `awg` the raw preshared key leaves only through `PresharedKey.KeyFile`, the key
+  file `BuildSet` passes to awg. The compiler enforces it: the key sits in an unexported field.
 - `awg show <iface> dump` and `awg showconf` output is never logged, and parse errors name a line
   and a field, never the input text.
 - A request string in an error message is formatted with `%q`.
@@ -123,7 +126,7 @@ internal/node/         startup before the socket: discovery, bring-up, tools ver
 internal/server/       gRPC server, ManagementService, health, lookup, recovery, status mapping
 proto/awg/v1/          API contract
 gen/awg/v1/            generated Go code, committed
-tools/                 go.mod pinning buf, protoc-gen-go, protoc-gen-go-grpc, grpcurl
+tools/                 go.mod pinning buf, protoc-gen-go, protoc-gen-go-grpc
 deploy/                example compose file and interface config, smoke-test compose and config
 test/smoke/            smoke test of the runtime image through docker compose (tag smoke)
 testdata/              fixtures: dump outputs, showconf outputs, integration interface config
@@ -137,5 +140,5 @@ buf.yaml, buf.gen.yaml buf module, lint and generation config
 
 ## Docs
 
-Stable design is in `docs/architecture/`, starting at its `README.md`. Dated plans are in
-`docs/plans/`, completed ones in `docs/plans/completed/`.
+Stable design is in `docs/architecture/`, starting at `overview.md`, which also lists the locked
+decisions. Dated plans are in `docs/plans/`, completed ones in `docs/plans/completed/`.

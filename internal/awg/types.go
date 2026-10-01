@@ -20,7 +20,7 @@ func (k Key) String() string {
 }
 
 // PresharedKey prints as *** for every fmt verb, in slog and as text. The key sits in an
-// unexported field, so only Bytes returns it.
+// unexported field, so outside this package only KeyFile returns it.
 type PresharedKey struct {
 	key [32]byte
 }
@@ -30,9 +30,9 @@ func NewPresharedKey(raw [32]byte) *PresharedKey {
 	return &PresharedKey{key: raw}
 }
 
-// Bytes returns a copy of the raw key.
-func (k PresharedKey) Bytes() []byte {
-	return k.key[:]
+// KeyFile returns the key in the file format awg reads for preshared-key: base64 and a newline.
+func (k PresharedKey) KeyFile() []byte {
+	return []byte(base64.StdEncoding.EncodeToString(k.key[:]) + "\n")
 }
 
 // Format writes *** for every verb.

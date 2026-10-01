@@ -126,7 +126,7 @@ func debugDevice(d Device) string {
 	for _, p := range d.Peers {
 		psk := "(none)"
 		if p.PresharedKey != nil {
-			psk = Key(p.PresharedKey.Bytes()).String()
+			psk = Key(p.PresharedKey.key).String()
 		}
 		b.WriteString("\n  " + p.PublicKey.String() + " psk=" + psk + " ep=" + p.Endpoint)
 		for _, ip := range p.AllowedIPs {

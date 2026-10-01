@@ -64,9 +64,10 @@ interface must have an address at start, because an interface without one would 
 
 ## Diff and locking
 
-`reconcile.Diff(from, to)` compares two peer sets by public key. Allowed IPs compare as sets,
-ignoring order and repeats. Two absent PSKs are equal. Endpoint, handshake and counters are
-ignored.
+`reconcile.Diff(from, to)` compares two peer sets by public key. Allowed IP lists compare in
+order: between dumps the kernel keeps a peer's allowed IPs unique and in insertion order, and
+`BuildSet` writes one CIDR per peer. Two absent PSKs are equal. Endpoint, handshake and counters
+are ignored.
 
 Each configured interface has a lock, a channel with one slot. An apply holds it from the first
 `dump` to the second, so overlapping client passes on one interface never interleave their `awg`

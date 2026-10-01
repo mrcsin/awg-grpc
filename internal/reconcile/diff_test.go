@@ -117,10 +117,10 @@ func TestDiff(t *testing.T) {
 			want: Changes{Added: keys(), Removed: keys(), Updated: keys(0x01)},
 		},
 		{
-			name: "allowed ip order does not matter",
+			name: "allowed ip order counts as a change",
 			from: []awg.Peer{peer(0x01, psk(0x11), "10.8.1.3/32", "fd00:8::2/128")},
 			to:   []awg.Peer{peer(0x01, psk(0x11), "fd00:8::2/128", "10.8.1.3/32")},
-			want: Changes{Added: keys(), Removed: keys(), Updated: keys()},
+			want: Changes{Added: keys(), Removed: keys(), Updated: keys(0x01)},
 		},
 		{
 			name: "runtime fields do not count as a change",

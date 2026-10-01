@@ -1,7 +1,6 @@
 package reconcile
 
 import (
-	"encoding/base64"
 	"strconv"
 	"strings"
 
@@ -35,14 +34,9 @@ func BuildSet(name string, changes Changes, desired, kernel []awg.Peer) (awg.Com
 			if !samePresharedKey(kernelByKey[pub].PresharedKey, want.PresharedKey) {
 				fd := firstExtraFD + len(files)
 				args = append(args, "preshared-key", "/dev/fd/"+strconv.Itoa(fd))
-				files = append(files, pskFileContent(*want.PresharedKey))
+				files = append(files, want.PresharedKey.KeyFile())
 			}
 		}
 	}
 	return awg.Command{Name: "awg", Args: args, ExtraFiles: files}, true
-}
-
-// pskFileContent is the key file format parse_keyfile reads: base64 and a newline.
-func pskFileContent(k awg.PresharedKey) []byte {
-	return []byte(base64.StdEncoding.EncodeToString(k.Bytes()) + "\n")
 }

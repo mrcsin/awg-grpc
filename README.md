@@ -37,11 +37,11 @@ no state: after a restart the interfaces have no peers until the client applies 
 
 ## Configuration
 
-| Variable              | Default                  | Meaning                                     |
-| --------------------- | ------------------------ | ------------------------------------------- |
-| `AWG_GRPC_SOCKET`     | `/run/awg-grpc/awg.sock` | socket path                                 |
-| `AWG_GRPC_CONFIG_DIR` | `/etc/amnezia/amneziawg` | directory with the interface configs        |
-| `AWG_GRPC_SOCKET_GID` | unset                    | socket group; unset keeps the process group |
+The socket is `/run/awg-grpc/awg.sock`; the interface configs are in `/etc/amnezia/amneziawg`.
+
+| Variable              | Default | Meaning                                     |
+| --------------------- | ------- | ------------------------------------------- |
+| `AWG_GRPC_SOCKET_GID` | unset   | socket group; unset keeps the process group |
 
 Each `<name>.conf` brings up the interface `<name>` and holds the `[Interface]` section only.
 `awg-quick` runs its `PostUp` and `PostDown` lines as root inside the container, so mount the

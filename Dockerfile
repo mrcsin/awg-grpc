@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 
-ARG ALPINE_IMAGE=alpine:3.24.2
-ARG GOLANG_IMAGE=golang:1.27.1-alpine3.24
+# Base images: tools and runtime use the same alpine tag, build and integration the same golang
+# tag. Bump each pair together.
 
 # amneziawg-tools at the commit that matches the host module generation. Without .git the
 # Makefile skips git describe and the version comes from src/version.h.
-FROM ${ALPINE_IMAGE} AS tools
+FROM alpine:3.24.2 AS tools
 ARG AWG_TOOLS_REF=ee0f0a9aa34ff0a0da4b3433b9512781cfe02843
 RUN apk add --no-cache build-base git linux-headers
 RUN git clone https://github.com/amnezia-vpn/amneziawg-tools.git /src \
@@ -15,7 +15,7 @@ RUN make -C /src/src \
  && make -C /src/src install DESTDIR=/out \
       WITH_WGQUICK=yes WITH_BASHCOMPLETION=no WITH_SYSTEMDUNITS=no
 
-FROM ${GOLANG_IMAGE} AS build
+FROM golang:1.27.1-alpine3.24 AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -26,7 +26,7 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
       -o /out/awg-grpc ./cmd/awg-grpc
 
-FROM ${GOLANG_IMAGE} AS integration
+FROM golang:1.27.1-alpine3.24 AS integration
 RUN apk add --no-cache bash iproute2
 COPY --from=tools /out/ /
 WORKDIR /src
@@ -36,7 +36,7 @@ COPY . .
 ENV CGO_ENABLED=0
 CMD ["go", "test", "-tags", "integration", "-count=1", "./..."]
 
-FROM ${ALPINE_IMAGE} AS runtime
+FROM alpine:3.24.2 AS runtime
 RUN apk add --no-cache bash iproute2 iptables
 COPY --from=tools /out/ /
 COPY --from=build /out/awg-grpc /usr/local/bin/awg-grpc
