@@ -8,8 +8,15 @@ socket; `README.md` describes it. Go module `github.com/mrcsin/awg-grpc`; entry 
 
 ```sh
 go build ./...
-docker build --build-arg VERSION=dev -t awg-grpc:local .   # target runtime; README lists the args
+docker build --build-arg VERSION=dev -t awg-grpc:local .   # target runtime
 ```
+
+| Build argument  | Meaning                                                                           |
+| --------------- | --------------------------------------------------------------------------------- |
+| `VERSION`       | the `wrapper_version` that `GetStatus` reports                                    |
+| `AWG_TOOLS_REF` | `amneziawg-tools` commit built from source; must match the host module generation |
+| `ALPINE_IMAGE`  | base of the `tools` and `runtime` stages                                          |
+| `GOLANG_IMAGE`  | base of the `build` and `integration` stages                                      |
 
 ## Test
 

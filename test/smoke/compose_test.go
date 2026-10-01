@@ -1,7 +1,7 @@
 //go:build smoke
 
 // Package smoke drives the runtime image through deploy/compose.smoke.yml against the host
-// amneziawg module. It needs Docker with compose and the module loaded; CLAUDE.md, Test, runs it.
+// amneziawg module. It needs Docker with compose and the module loaded; AGENTS.md, Test, runs it.
 package smoke
 
 import (
