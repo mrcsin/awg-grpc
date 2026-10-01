@@ -1,4 +1,4 @@
-# Smoke test of the runtime image, driven by test/smoke (CLAUDE.md, Test). Publishes no port.
+# Smoke test of the runtime image, driven by test/smoke (AGENTS.md, Test). Publishes no port.
 name: awgsmoke
 services:
   awg:

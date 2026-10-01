@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The Format chain of CLAUDE.md: gofmt, go vet under every build tag, buf lint and a check that
+# The Format chain of AGENTS.md: gofmt, go vet under every build tag, buf lint and a check that
 # gen/ equals buf generate. The pre-commit hook and the CI check job run it.
 # Runs under bash 3.2 (macOS). On a host other than linux/amd64 it vets the linux/amd64 build too,
 # so the //go:build linux files are checked on macOS.
