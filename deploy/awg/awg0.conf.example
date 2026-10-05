@@ -7,18 +7,34 @@ PrivateKey = <private key>
 Address = 10.8.1.1/24
 ListenPort = 51820
 
-# Obfuscation parameters. Choose your own values; GetStatus returns them in client_params, and
-# clients must use the same ones. Add the 2.0, 3.0 and 3.1 keys the host module supports.
-Jc = 4
-Jmin = 40
-Jmax = 70
-S1 = 15
+# Obfuscation parameters, AmneziaWG 3.1. Choose your own values; GetStatus returns them in
+# client_params, and clients must use the same ones.
+Jc = 3
+Jmin = 74
+Jmax = 217
+I1 = <r 102>
+# Output of `awg genpsk`. Header protection needs every S1-S4 at least 12.
+HeaderProtectionKey = <header protection key>
+ContentPaddingAddition = 24-52
+DisableCookies = on
+# With RandomTrailers on, the receiver tests data packets against H1-H3 at offsets S1-S3 and
+# drops the ones that match as bad handshakes; wide H ranges lose a share of all traffic
+# (amneziawg-go#186). Keep S1-S4 equal and H1-H4 at 1-4: header protection already hides them.
+RandomTrailers = on
+S1 = 18
 S2 = 18
-H1 = 100000-199999
-H2 = 200000-299999
-H3 = 300000-399999
-H4 = 400000-499999
+S3 = 18
+S4 = 18
+H1 = 1
+H2 = 2
+H3 = 3
+H4 = 4
 
-# NAT for client traffic; iptables runs inside the container network namespace.
+# NAT for client traffic, then client isolation: no traffic between clients and none to private
+# networks, the Docker ones included. iptables runs inside the container network namespace.
 PostUp = iptables -t nat -A POSTROUTING -s 10.8.1.0/24 -o eth0 -j MASQUERADE
+PostUp = iptables -A FORWARD -i %i -o %i -j DROP
+PostUp = iptables -A FORWARD -i %i -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
 PostDown = iptables -t nat -D POSTROUTING -s 10.8.1.0/24 -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -o %i -j DROP
+PostDown = iptables -D FORWARD -i %i -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
