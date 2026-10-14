@@ -91,7 +91,6 @@ func messages(peers []itPeer) []*awgv1.Peer {
 	return out
 }
 
-// sortedKeys returns the public keys in the order ApplyPeersResponse lists them.
 func sortedKeys(peers ...itPeer) [][]byte {
 	keys := make([][]byte, 0, len(peers))
 	for _, p := range peers {
@@ -101,8 +100,7 @@ func sortedKeys(peers ...itPeer) [][]byte {
 	return keys
 }
 
-// startIT runs the production startup, node.Start, on the fixture directory and serves
-// NewGRPCServer on a temp unix socket. Cleanup stops the server, then deletes itIface.
+// startIT runs the production startup, node.Start, on the fixture directory.
 func startIT(t *testing.T) awgv1.ManagementServiceClient {
 	t.Helper()
 	runner := awg.ExecRunner{}
@@ -151,7 +149,6 @@ func startIT(t *testing.T) awgv1.ManagementServiceClient {
 	return awgv1.NewManagementServiceClient(conn)
 }
 
-// awgShow returns the output of awg show itIface <args>, read outside the service.
 func awgShow(t *testing.T, args ...string) string {
 	t.Helper()
 	cmd := exec.Command("awg", append([]string{"show", itIface}, args...)...)
@@ -164,7 +161,6 @@ func awgShow(t *testing.T, args ...string) string {
 	return string(out)
 }
 
-// keyColumns parses "<public key>\t<value>" lines, as awg show prints preshared-keys.
 func keyColumns(t *testing.T, out string) map[string]string {
 	t.Helper()
 	m := make(map[string]string)

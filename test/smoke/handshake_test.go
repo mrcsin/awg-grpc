@@ -24,10 +24,7 @@ const (
 	handshakeTimeout = 30 * time.Second
 )
 
-// testHandshake proves that GetStatus.client_params, plus the peer the wrapper applied, give a
-// client config that completes a handshake with the smoke interface from a second container and
-// then carries pings through the tunnel both ways. Both ends run the same module and tools, so it
-// says nothing about phone apps, amneziawg-go peers or any other peer implementation.
+// testHandshake covers two containers of the same module and tools, not phone apps or amneziawg-go.
 func testHandshake(t *testing.T, client awgv1.ManagementServiceClient) {
 	peer, priv := newPeer(t, clientCIDR)
 	applyPeers(t, client, peer)
@@ -83,7 +80,6 @@ func clientConfig(priv, psk []byte, iface *awgv1.InterfaceStatus) []byte {
 	return b.Bytes()
 }
 
-// waitHandshake polls ListPeers every second until the peer with key pub has a handshake.
 func waitHandshake(t *testing.T, client awgv1.ManagementServiceClient, pub []byte) *awgv1.PeerStatus {
 	t.Helper()
 	deadline := time.Now().Add(handshakeTimeout)
@@ -103,7 +99,6 @@ func waitHandshake(t *testing.T, client awgv1.ManagementServiceClient, pub []byt
 	return nil
 }
 
-// removeClient logs the client container when the subtest failed, then removes the container.
 func removeClient(t *testing.T) {
 	t.Helper()
 	if t.Failed() {

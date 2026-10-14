@@ -10,8 +10,7 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/awg"
 )
 
-// NewGRPCServer returns the server of the socket: RecoverUnary as the first unary interceptor,
-// ManagementService and the health service for the configured interfaces.
+// NewGRPCServer puts RecoverUnary first in the unary chain.
 func NewGRPCServer(runner awg.Runner, lookup Lookup, interfaces []string, versions Versions, logger *slog.Logger) *grpc.Server {
 	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(RecoverUnary(logger)))
 	awgv1.RegisterManagementServiceServer(srv, NewManagement(runner, lookup, interfaces, versions))

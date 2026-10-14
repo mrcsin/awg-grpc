@@ -15,7 +15,6 @@ import (
 // ARG_MAX and the file descriptor limit.
 const MaxPeers = 1000
 
-// Interface is the kernel state of an interface that a desired list is validated against.
 type Interface struct {
 	PublicKey awg.Key
 	Addresses []netip.Prefix
@@ -39,8 +38,7 @@ func peerError(index int, format string, args ...any) *ValidationError {
 	return &ValidationError{message: fmt.Sprintf("peer %d: ", index) + fmt.Sprintf(format, args...)}
 }
 
-// Desired converts the request's peer list into kernel-side peers in request order and returns
-// the first rule violation as *ValidationError.
+// Desired returns the kernel-side peers in request order, or the first violation as *ValidationError.
 func Desired(req *awgv1.ApplyPeersRequest, iface Interface) ([]awg.Peer, error) {
 	reqPeers := req.GetPeers()
 	if len(reqPeers) == 0 && !req.GetAllowEmpty() {
@@ -70,8 +68,6 @@ func Desired(req *awgv1.ApplyPeersRequest, iface Interface) ([]awg.Peer, error) 
 	return peers, nil
 }
 
-// convertPeer checks rules 2 to 8 for one peer; firstIndex maps the public keys of the peers
-// before it to their indexes.
 func convertPeer(i int, rp *awgv1.Peer, iface Interface, firstIndex map[awg.Key]int) (awg.Peer, error) {
 	pub, err := parseKey(rp.GetPublicKey())
 	if err != nil {
@@ -140,7 +136,6 @@ func parseAllowedIP(s string) (netip.Prefix, error) {
 	return prefix, nil
 }
 
-// insideAny reports whether prefix lies inside the network prefix of one of the addresses.
 func insideAny(prefix netip.Prefix, addresses []netip.Prefix) bool {
 	for _, addr := range addresses {
 		network := addr.Masked()

@@ -91,8 +91,6 @@ func TestDesiredValid(t *testing.T) {
 	}
 }
 
-// manyPeers returns n valid peers with distinct keys and /32 addresses inside 10.9.0.0/16, from
-// 10.9.0.2 on.
 func manyPeers(n int) []*awgv1.Peer {
 	peers := make([]*awgv1.Peer, n)
 	for i := range peers {
@@ -112,7 +110,6 @@ func TestDesiredRejects(t *testing.T) {
 	shortPSK := []byte("0123456789abcdefghijklmnopqrstu") // 31 bytes
 	own := key(0xEE)
 
-	// inMessage holds text only the expected rule writes, and "peer <index>: " for a peer rule.
 	tests := []struct {
 		name      string
 		req       *awgv1.ApplyPeersRequest

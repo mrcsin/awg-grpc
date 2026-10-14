@@ -20,7 +20,6 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/reconcile"
 )
 
-// Management implements awgv1.ManagementServiceServer for the configured interfaces.
 type Management struct {
 	awgv1.UnimplementedManagementServiceServer
 
@@ -31,24 +30,21 @@ type Management struct {
 	interfaces map[string]*configuredInterface
 }
 
-// Versions is what GetStatus reports about the software on the node. GetStatus reads
-// ModuleVersionFile on every call, so the value follows the loaded host module.
+// Versions is what GetStatus reports; ModuleVersionFile is read on every call.
 type Versions struct {
 	Wrapper           string
 	Tools             string
 	ModuleVersionFile string
 }
 
-// configuredInterface is one interface from the config directory. lock is a one-slot semaphore
-// that serializes the applies on it, so overlapping usher passes never interleave their awg
-// calls; a waiting apply gives up when its context ends.
+// configuredInterface's lock is a one-slot semaphore serializing applies; a waiting apply gives
+// up when its context ends.
 type configuredInterface struct {
 	name string
 	lock chan struct{}
 }
 
-// NewManagement returns the service for the interfaces named in interfaces. GetStatus reports
-// them in this order.
+// NewManagement makes GetStatus report the interfaces in the given order.
 func NewManagement(runner awg.Runner, lookup Lookup, interfaces []string, versions Versions) *Management {
 	m := &Management{
 		runner:     runner,
@@ -121,7 +117,6 @@ func (m *Management) applyPeers(ctx context.Context, req *awgv1.ApplyPeersReques
 	return reconcile.Diff(before.Peers, after.Peers), nil
 }
 
-// ListPeers reports the peers the kernel holds for one interface, without preshared keys.
 func (m *Management) ListPeers(ctx context.Context, req *awgv1.ListPeersRequest) (*awgv1.ListPeersResponse, error) {
 	device, err := m.listPeers(ctx, req.GetInterfaceName())
 	if err != nil {
@@ -145,7 +140,6 @@ func (m *Management) listPeers(ctx context.Context, name string) (awg.Device, er
 	return m.readDump(ctx, iface.name)
 }
 
-// GetStatus reports the versions and the state of every configured interface.
 func (m *Management) GetStatus(ctx context.Context, _ *awgv1.GetStatusRequest) (*awgv1.GetStatusResponse, error) {
 	resp, err := m.getStatus(ctx)
 	if err != nil {
@@ -175,8 +169,7 @@ func (m *Management) getStatus(ctx context.Context) (*awgv1.GetStatusResponse, e
 	}, nil
 }
 
-// moduleVersion returns the trimmed content of the module version file, or "" when the file
-// does not exist because the module is not loaded.
+// moduleVersion returns "" when the version file does not exist, that is, the module is not loaded.
 func (m *Management) moduleVersion() (string, error) {
 	b, err := os.ReadFile(m.versions.ModuleVersionFile)
 	if errors.Is(err, fs.ErrNotExist) {

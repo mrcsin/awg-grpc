@@ -15,7 +15,6 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/awg"
 )
 
-// Interface is one configured interface: the name awg-quick derives from its file, and the file.
 type Interface struct {
 	Name string
 	Path string
@@ -27,12 +26,10 @@ const confSuffix = ".conf"
 // leading '-' or '.', so a name is never read as an option.
 var interfaceName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_=+.-]{0,14}$`)
 
-// showKeywords are the first arguments awg show reads as keywords, not interface names.
 var showKeywords = map[string]bool{"all": true, "interfaces": true}
 
-// Discover returns one interface per *.conf file in dir, in file name order, each with an absolute
-// path. It fails when dir holds none, when a name is not a safe interface name, or when a file has
-// a [Peer] section.
+// Discover returns one interface per *.conf file in dir, in file name order, with absolute paths.
+// It fails when dir holds none, a name is unsafe, or a file has a [Peer] section.
 func Discover(dir string) ([]Interface, error) {
 	// awg-quick reads a bare "awg0.conf" as an interface name and loads
 	// /etc/amnezia/amneziawg/awg0.conf.conf instead ([tools] src/wg-quick/linux.bash:43).
@@ -87,9 +84,8 @@ func checkNoPeers(path string) error {
 	return nil
 }
 
-// BringUp runs awg-quick up for each interface in order, then checks that each one is present
-// with at least one address. An interface without an address would reject every peer, so it
-// stops the start instead of failing each apply.
+// BringUp runs awg-quick up for each interface, then checks each has an address: an interface
+// without one would reject every peer.
 func BringUp(ctx context.Context, runner awg.Runner, lookup func(name string) ([]netip.Prefix, bool, error), ifaces []Interface) error {
 	for _, iface := range ifaces {
 		if _, err := runner.Run(ctx, awg.Command{Name: "awg-quick", Args: []string{"up", iface.Path}}); err != nil {

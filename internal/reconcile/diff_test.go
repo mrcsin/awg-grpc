@@ -172,7 +172,6 @@ func TestDiff(t *testing.T) {
 	}
 }
 
-// describeChanges prints the first byte of every key, which is enough to tell the test keys apart.
 func describeChanges(c Changes) string {
 	short := func(ks []awg.Key) []byte {
 		out := make([]byte, 0, len(ks))

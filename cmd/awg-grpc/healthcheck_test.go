@@ -16,8 +16,7 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/server"
 )
 
-// socketPath returns a socket path in a fresh short directory. t.TempDir paths on macOS can
-// pass the 104-byte sun_path limit.
+// socketPath returns a short path: t.TempDir paths on macOS can pass the 104-byte sun_path limit.
 func socketPath(t *testing.T) string {
 	t.Helper()
 	dir, err := os.MkdirTemp("", "awgh")

@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-// fixturePSK is the PSK of the first peer in testdata/dump/psk-mixed.txt, a throwaway test key.
 const fixturePSK = "AXzkhaUcx4Y8J39+Z6udReAPJCDZjjvZcyoPjPcIHFE="
 
 func mustKey(t *testing.T, b64 string) [32]byte {
@@ -30,7 +29,6 @@ func mustPSK(t *testing.T, b64 string) *PresharedKey {
 	return NewPresharedKey(mustKey(t, b64))
 }
 
-// leakForms returns every rendering of a key that must never appear in output.
 func leakForms(raw [32]byte) []string {
 	return []string{
 		base64.StdEncoding.EncodeToString(raw[:]),

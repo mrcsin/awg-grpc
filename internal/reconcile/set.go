@@ -7,14 +7,10 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/awg"
 )
 
-// firstExtraFD is the descriptor number the child sees for the first extra file.
 const firstExtraFD = 3
 
-// BuildSet returns the one awg set command that applies changes to the interface name, and false
-// when the changes are empty. Removals come first, then added and updated peers, each list in the
-// order Changes holds it. A peer gets a preshared-key argument when its desired key differs from
-// the kernel's; the key travels in an extra file, never in Args. Every argument is rebuilt from
-// validated values: keys from 32 bytes, CIDRs from parsed prefixes.
+// BuildSet returns the one awg set command for changes, and false when they are empty. A preshared
+// key travels in an extra file, never in Args.
 func BuildSet(name string, changes Changes, desired, kernel []awg.Peer) (awg.Command, bool) {
 	if len(changes.Added)+len(changes.Removed)+len(changes.Updated) == 0 {
 		return awg.Command{}, false

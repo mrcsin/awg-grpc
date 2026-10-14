@@ -18,8 +18,7 @@ import (
 	awgv1 "github.com/mrcsin/awg-grpc/gen/awg/v1"
 )
 
-// clientParamCount is the number of keys of deploy/smoke/awgsmoke0.conf that GetStatus returns in
-// client_params: every 3.1 parameter. A config that loses one fails the status subtest.
+// clientParamCount is every 3.1 key of deploy/smoke/awgsmoke0.conf that GetStatus returns.
 const clientParamCount = 25
 
 // toolsVersion is the amneziawg-tools version the image builds. The host module must report the
@@ -74,8 +73,6 @@ func testStatus(t *testing.T, client awgv1.ManagementServiceClient) {
 	}
 }
 
-// clientParamKeys returns the sorted keys of deploy/smoke/awgsmoke0.conf without the ones
-// GetStatus never returns in client_params.
 func clientParamKeys(t *testing.T) []string {
 	t.Helper()
 	serverOnlyKeys := []string{"PrivateKey", "Address", "ListenPort", "PostUp", "PostDown"}
@@ -99,8 +96,6 @@ func clientParamKeys(t *testing.T) []string {
 	return keys
 }
 
-// testRestart proves that a container restart starts from the config file: the peers applied
-// before it are gone after it.
 func testRestart(t *testing.T, client awgv1.ManagementServiceClient) {
 	first, _ := newPeer(t, "10.99.0.3/32")
 	second, _ := newPeer(t, "10.99.0.4/32")
@@ -146,8 +141,6 @@ func testStop(t *testing.T, _ awgv1.ManagementServiceClient) {
 	}
 }
 
-// newPeer returns a peer with a real X25519 public key and a random preshared key, and the private
-// key of that peer.
 func newPeer(t *testing.T, cidr string) (*awgv1.Peer, *ecdh.PrivateKey) {
 	t.Helper()
 	priv, err := ecdh.X25519().GenerateKey(rand.Reader)

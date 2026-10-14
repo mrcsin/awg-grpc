@@ -11,7 +11,6 @@ const (
 	socketFile = "/run/awg-grpc/awg.sock"
 	configDir  = "/etc/amnezia/amneziawg"
 
-	// noSocketGID leaves the socket in the group of the process.
 	noSocketGID = -1
 )
 

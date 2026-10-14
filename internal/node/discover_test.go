@@ -16,7 +16,6 @@ import (
 
 const interfaceSection = "[Interface]\nPrivateKey = test\nAddress = 10.8.1.1/24\nListenPort = 51820\n"
 
-// writeDir creates a config directory holding files (name to content) and directories.
 func writeDir(t *testing.T, files map[string]string, dirs ...string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -161,7 +160,6 @@ func TestDiscoverUnreadableConfigFile(t *testing.T) {
 	}
 }
 
-// stubLookup answers from a fixed table; a name missing from the table is absent.
 type stubLookup struct {
 	addrs map[string][]netip.Prefix
 }
