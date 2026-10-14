@@ -6,13 +6,11 @@ import (
 	"net/netip"
 )
 
-// Lookup reports whether a network interface exists in the container network namespace and
-// returns its addresses. An error means the lookup itself failed.
+// Lookup returns the addresses of an interface; an error means the lookup itself failed.
 type Lookup func(name string) (addrs []netip.Prefix, present bool, err error)
 
 var _ Lookup = NetLookup
 
-// NetLookup is the production Lookup over the network interfaces of the current namespace.
 func NetLookup(name string) ([]netip.Prefix, bool, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// Field counts of awg show <iface> dump for the tools version the image pins.
 const (
 	dumpDeviceFields = 29
 	dumpPeerFields   = 8

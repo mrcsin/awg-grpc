@@ -8,9 +8,8 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/awg"
 )
 
-// Start runs every startup step that comes before the socket: Discover in dir, BringUp, awg
-// --version, and Probe on the first interface. It returns the interface names in file name order
-// and the tools version.
+// Start runs the startup steps before the socket (Discover, BringUp, awg --version, Probe on the
+// first interface). It returns the interface names in file name order and the tools version.
 func Start(ctx context.Context, runner awg.Runner, lookup func(name string) ([]netip.Prefix, bool, error), dir string) (names []string, toolsVersion string, err error) {
 	ifaces, err := Discover(dir)
 	if err != nil {

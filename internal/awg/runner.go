@@ -12,17 +12,14 @@ import (
 	"time"
 )
 
-// Runner executes an external command and returns its stdout.
 type Runner interface {
 	Run(ctx context.Context, cmd Command) ([]byte, error)
 }
 
-// Command is one invocation of an external tool, without a shell.
 type Command struct {
 	Name string
 	Args []string
-	// ExtraFiles each become a pipe readable by the child at /dev/fd/(3+i).
-	// Every content must fit the pipe buffer: it is written before the child starts.
+	// ExtraFiles become pipes at /dev/fd/(3+i); each content must fit the pipe buffer.
 	ExtraFiles [][]byte
 }
 
@@ -39,7 +36,6 @@ func (e *ExitError) Error() string {
 // waitDelay bounds Wait after the context ends, when a grandchild still holds stdout or stderr.
 const waitDelay = 2 * time.Second
 
-// ExecRunner runs commands with os/exec. It is the production Runner.
 type ExecRunner struct{}
 
 var _ Runner = ExecRunner{}
@@ -81,7 +77,6 @@ func (ExecRunner) Run(ctx context.Context, c Command) ([]byte, error) {
 	return stdout.Bytes(), nil
 }
 
-// openPipes returns the read ends of pipes that already hold each content, write ends closed.
 func openPipes(contents [][]byte) ([]*os.File, error) {
 	readEnds := make([]*os.File, 0, len(contents))
 	for i, content := range contents {

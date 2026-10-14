@@ -38,7 +38,6 @@ type reply struct {
 	err    error
 }
 
-// happyReplies answers every startup command for the interfaces awg0 and awg1 in dir.
 func happyReplies(dir string) []reply {
 	return []reply{
 		{name: "awg-quick", args: []string{"up", filepath.Join(dir, "awg0.conf")}},
@@ -49,7 +48,6 @@ func happyReplies(dir string) []reply {
 	}
 }
 
-// happyEvents is the startup order for happyReplies, with the config directory as $DIR.
 var happyEvents = []string{
 	"awg-quick up $DIR/awg0.conf",
 	"awg-quick up $DIR/awg1.conf",
@@ -60,8 +58,7 @@ var happyEvents = []string{
 	"awg set awg0 disable-cookies off",
 }
 
-// recorder keeps runner calls and lookups in one sequence, each with whether the socket
-// existed at that moment.
+// recorder keeps runner calls and lookups in one sequence, with the socket state at each.
 type recorder struct {
 	mu         sync.Mutex
 	dir        string
@@ -85,9 +82,8 @@ func (r *recorder) snapshot() ([]string, []bool) {
 }
 
 type recordingRunner struct {
-	fake *awgtest.Runner
-	rec  *recorder
-	// panicOn is a command line that panics instead of running, as a handler bug would.
+	fake    *awgtest.Runner
+	rec     *recorder
 	panicOn string
 }
 
@@ -100,15 +96,12 @@ func (r recordingRunner) Run(ctx context.Context, cmd awg.Command) ([]byte, erro
 	return r.fake.Run(ctx, cmd)
 }
 
-// startup is one run of the serve startup against a temp config directory and socket.
 type startup struct {
 	cfg    config
 	rec    *recorder
 	runner recordingRunner
 }
 
-// newStartup writes awg0.conf and awg1.conf into a temp config directory and queues replies;
-// edit, when not nil, changes the happy replies first.
 func newStartup(t *testing.T, edit func([]reply)) *startup {
 	t.Helper()
 	dir := t.TempDir()
@@ -148,7 +141,6 @@ func (s *startup) start(ctx context.Context, t *testing.T) <-chan error {
 	return done
 }
 
-// serving starts run and waits until the health check over the socket passes.
 func (s *startup) serving(t *testing.T) (cancel func() error) {
 	t.Helper()
 	ctx, stop := context.WithCancel(context.Background())
@@ -268,7 +260,6 @@ func TestRunStartupFailures(t *testing.T) {
 	}
 }
 
-// foreignGID returns a group the process is not a member of.
 func foreignGID(t *testing.T) int {
 	t.Helper()
 	groups, err := os.Getgroups()
@@ -282,7 +273,6 @@ func foreignGID(t *testing.T) int {
 	}
 }
 
-// supplementaryGID returns a group of the process other than its effective group, or skips.
 func supplementaryGID(t *testing.T) int {
 	t.Helper()
 	groups, err := os.Getgroups()

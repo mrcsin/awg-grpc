@@ -177,8 +177,6 @@ func pskBytes(t *testing.T, k *awg.PresharedKey) []byte {
 	return raw
 }
 
-// assertCIDRsCanonical checks that every allowed-ips value is the prefix String form of the
-// desired peer it belongs to.
 func assertCIDRsCanonical(t *testing.T, args []string, desired []awg.Peer) {
 	t.Helper()
 	wantByKey := byPublicKey(desired)

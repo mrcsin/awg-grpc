@@ -8,9 +8,8 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-// Health implements grpc.health.v1.Health/Check for the container: it is SERVING when every
-// configured interface is present. The service name in the request is ignored, since the
-// container has one health. List and Watch stay unimplemented.
+// Health is SERVING when every configured interface is present; the request's service name is
+// ignored. List and Watch are unimplemented.
 type Health struct {
 	healthpb.UnimplementedHealthServer
 
@@ -18,12 +17,10 @@ type Health struct {
 	names  []string
 }
 
-// NewHealth returns the health service over the configured interfaces.
 func NewHealth(lookup Lookup, interfaces []string) *Health {
 	return &Health{lookup: lookup, names: slices.Clone(interfaces)}
 }
 
-// Check runs the presence lookup for every configured interface on each call.
 func (h *Health) Check(_ context.Context, _ *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 	for _, name := range h.names {
 		_, present, err := h.lookup(name)

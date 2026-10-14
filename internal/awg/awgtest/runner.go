@@ -1,4 +1,4 @@
-// Package awgtest holds test doubles and helpers for tests of code that uses package awg.
+// Package awgtest holds test doubles for package awg.
 package awgtest
 
 import (
@@ -31,7 +31,6 @@ type result struct {
 
 var _ awg.Runner = (*Runner)(nil)
 
-// NewRunner returns a fake runner with no queued results.
 func NewRunner() *Runner {
 	return &Runner{}
 }
@@ -51,7 +50,6 @@ func (r *Runner) Respond(name string, args []string, stdout []byte, err error) {
 	r.responses = append(r.responses, response{name: name, args: slices.Clone(args), results: []result{res}})
 }
 
-// Run records the call and returns the next queued result, or an error when none matches.
 func (r *Runner) Run(_ context.Context, cmd awg.Command) ([]byte, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

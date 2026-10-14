@@ -30,7 +30,6 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/awg/awgtest"
 )
 
-// Test interfaces: awg0 is configured and present, awg1 is configured and absent.
 const (
 	presentIface = "awg0"
 	absentIface  = "awg1"
@@ -46,10 +45,8 @@ func key(b byte) awg.Key {
 	return k
 }
 
-// serverKey is the public key of awg0 in every generated dump.
 var serverKey = key(0xEE)
 
-// deviceLine is an awg show dump device line with 29 fields and default obfuscation values.
 func deviceLine(pub awg.Key) string {
 	fields := []string{key(0xDD).String(), pub.String(), "51820", "0", "0", "0", "0", "0", "0", "0",
 		"1", "2", "3", "4", "(null)", "(null)", "(null)", "(null)", "(null)", "(none)",
@@ -57,7 +54,7 @@ func deviceLine(pub awg.Key) string {
 	return strings.Join(fields, "\t")
 }
 
-// peerLine is an awg show dump peer line; sharedKey 0 means no preshared key.
+// peerLine: sharedKey 0 means no preshared key.
 func peerLine(pub, sharedKey byte, cidr string) string {
 	pskText := "(none)"
 	if sharedKey != 0 {
@@ -97,7 +94,6 @@ func lookupOf(addrs map[string]string) Lookup {
 
 var awg0Lookup = lookupOf(map[string]string{presentIface: "10.8.1.1/24"})
 
-// syncBuffer is a log sink safe for the server goroutines and the test goroutine.
 type syncBuffer struct {
 	mu  sync.Mutex
 	buf bytes.Buffer
@@ -223,7 +219,6 @@ func TestApplyPeersInterfaceErrors(t *testing.T) {
 }
 
 func TestApplyPeersValidation(t *testing.T) {
-	// wantText is text only the expected rule writes.
 	tests := []struct {
 		name     string
 		peers    []*awgv1.Peer
@@ -437,8 +432,7 @@ func TestApplyPeersInternalErrors(t *testing.T) {
 	}
 }
 
-// gateRunner holds every awg set on awg0 until release is closed and reports every dump of awg0
-// on awg0Dumps.
+// gateRunner holds every awg set on awg0 until release is closed.
 type gateRunner struct {
 	*awgtest.Runner
 	awg0Dumps chan struct{}
@@ -466,7 +460,6 @@ func (g *gateRunner) Run(ctx context.Context, cmd awg.Command) ([]byte, error) {
 	return g.Runner.Run(ctx, cmd)
 }
 
-// awg0Calls returns the calls on awg0, name first.
 func awg0Calls(calls []awg.Command) [][]string {
 	var out [][]string
 	for _, c := range commandArgs(calls) {
@@ -477,11 +470,9 @@ func awg0Calls(calls []awg.Command) [][]string {
 	return out
 }
 
-// secondSetArgs is the command, name first, that adds the peer afterDump lacks.
 var secondSetArgs = []string{"awg", "set", presentIface,
 	"peer", key(0x05).String(), "allowed-ips", "10.8.1.6/32", "preshared-key", "/dev/fd/3"}
 
-// otherIface is a second present interface, with the address 10.8.2.1/24.
 const otherIface = "awg2"
 
 func TestApplyPeersSerializesPerInterface(t *testing.T) {
@@ -553,7 +544,6 @@ func TestApplyPeersSerializesPerInterface(t *testing.T) {
 	}
 }
 
-// handlerDone sends the error of every ApplyPeers handler on done when the handler returns.
 type handlerDone struct {
 	*Management
 	done chan error
@@ -622,8 +612,6 @@ func TestApplyPeersWaitingForTheLockEndsWithTheContext(t *testing.T) {
 	}
 }
 
-// blockingRunner blocks the command block until the call context ends and sends the context error
-// it saw on seen. Every other command goes to the fake.
 type blockingRunner struct {
 	*awgtest.Runner
 	block []string
@@ -823,7 +811,6 @@ func TestToStatus(t *testing.T) {
 
 var showconfArgs = []string{"showconf", presentIface}
 
-// writeModuleVersion writes a stand-in for /sys/module/amneziawg/version and returns its path.
 func writeModuleVersion(t *testing.T, content string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "version")
@@ -833,7 +820,6 @@ func writeModuleVersion(t *testing.T, content string) string {
 	return path
 }
 
-// statusRunner answers the dump and showconf of awg0 from the full fixtures.
 func statusRunner(t *testing.T) *awgtest.Runner {
 	t.Helper()
 	runner := awgtest.NewRunner()

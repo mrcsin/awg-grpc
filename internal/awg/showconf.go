@@ -8,23 +8,20 @@ import (
 	"strings"
 )
 
-// Param is one interface parameter from awg showconf, in the form a client config carries it.
 type Param struct {
 	Key   string
 	Value string
 }
 
-// paramKey admits only the tools' own key names, because usher writes each pair into client
-// configs.
+// paramKey admits only the tools' own key names, because usher writes each pair into client configs.
 var paramKey = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*$`)
 
 // serverOnlyKeys never reach a client config. The tools match keys case-insensitively
 // ([tools] src/config.c:40), so the filter does too.
 var serverOnlyKeys = []string{"PrivateKey", "ListenPort", "FwMark"}
 
-// ParseClientParams reads the [Interface] section of awg showconf <iface> and returns its
-// parameters in order, without PrivateKey, ListenPort and FwMark and without values 0 or off.
-// It stops at the first [Peer]. Errors name the line, never its text.
+// ParseClientParams returns the [Interface] parameters of awg showconf in order, minus server-only keys
+// and values 0 or off. It stops at the first [Peer]. Errors name the line, never its text.
 func ParseClientParams(out []byte) ([]Param, error) {
 	params := []Param{}
 	inInterface := false

@@ -13,7 +13,6 @@ import (
 	"github.com/mrcsin/awg-grpc/internal/awg/awgtest"
 )
 
-// panicRunner panics on its first call and delegates every later call.
 type panicRunner struct {
 	*awgtest.Runner
 	once sync.Once

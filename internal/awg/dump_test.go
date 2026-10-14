@@ -119,7 +119,6 @@ func TestParseDumpFixtures(t *testing.T) {
 	}
 }
 
-// debugDevice renders a Device with PSKs as base64, for test failure messages only.
 func debugDevice(d Device) string {
 	var b strings.Builder
 	b.WriteString(d.PublicKey.String())

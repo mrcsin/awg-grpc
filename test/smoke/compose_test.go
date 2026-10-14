@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	// repoDir is the repository root relative to this package; go test runs in the package dir.
 	repoDir       = "../.."
 	composeFile   = "deploy/compose.smoke.yml"
 	smokeIface    = "awgsmoke0"
@@ -35,9 +34,8 @@ func TestMain(m *testing.M) {
 	os.Exit(runMain(m))
 }
 
-// runMain creates the bind-mount directories as the test user, so dockerd does not create them
-// as root, starts the awg service and takes the project down at the end. A run that was killed
-// leaves the project up, so runMain also takes it down before it starts.
+// runMain creates the bind mounts as the test user, so dockerd does not create them as root. It
+// takes the project down first, because a killed run leaves it up.
 func runMain(m *testing.M) int {
 	flag.Parse()
 	if count := flag.Lookup("test.count").Value.String(); count != "1" {
@@ -88,7 +86,6 @@ func composeCmd(args ...string) *exec.Cmd {
 	return cmd
 }
 
-// run runs cmd and returns its stdout and stderr. The error wraps the exit status.
 func run(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
@@ -97,7 +94,6 @@ func run(cmd *exec.Cmd) (stdout, stderr string, err error) {
 	return outBuf.String(), errBuf.String(), err
 }
 
-// compose runs docker compose with args, fails the test on a non-zero exit and returns stdout.
 func compose(t *testing.T, args ...string) string {
 	t.Helper()
 	stdout, stderr, err := run(composeCmd(args...))
@@ -107,7 +103,6 @@ func compose(t *testing.T, args ...string) string {
 	return stdout
 }
 
-// inspect returns docker inspect -f format of the container of service, running or stopped.
 func inspect(t *testing.T, service, format string) string {
 	t.Helper()
 	id := strings.TrimSpace(compose(t, "ps", "-a", "-q", service))
@@ -121,7 +116,6 @@ func inspect(t *testing.T, service, format string) string {
 	return strings.TrimSpace(stdout)
 }
 
-// waitHealth polls the compose health state of service every second until it equals want.
 func waitHealth(t *testing.T, service, want string, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
@@ -136,8 +130,7 @@ func waitHealth(t *testing.T, service, want string, timeout time.Duration) {
 	t.Fatalf("health of %s = %q after %s, want %q", service, got, timeout, want)
 }
 
-// dial connects to the socket the awg service serves in .smoke/sock. grpc needs the absolute
-// path in a unix:// target.
+// dial needs the absolute socket path in the unix:// target.
 func dial(t *testing.T) awgv1.ManagementServiceClient {
 	t.Helper()
 	socket, err := filepath.Abs(filepath.Join(repoDir, ".smoke", "sock", "awg.sock"))
@@ -152,11 +145,9 @@ func dial(t *testing.T) awgv1.ManagementServiceClient {
 	return awgv1.NewManagementServiceClient(conn)
 }
 
-// waitForReady lets a call made right after a restart wait for the new socket instead of failing
-// on the old connection. Every RPC of the smoke test passes it.
+// waitForReady makes a call after a restart wait for the new socket instead of failing.
 var waitForReady = grpc.WaitForReady(true)
 
-// callContext bounds one RPC.
 func callContext(t *testing.T) context.Context {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
