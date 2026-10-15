@@ -23,10 +23,10 @@ fwmark and the obfuscation parameters stay as `awg-quick up` set them.
 3. `preshared-key /dev/fd/<n>` only when the desired PSK differs from the kernel PSK. The kernel
    keeps the stored PSK when the request carries none.
 
-Empty changes build no command. Commands run through `exec` without a shell. Interface names cannot
-start with `-` or `.`, so `awg` never reads one as an option. They cannot be `all` or
-`interfaces`, which `awg show` reads as keywords. The rest of the name rule is the `awg-quick`
-rule.
+Empty changes build no command. Commands run through `exec` without a shell. An interface name
+matches `^[A-Za-z0-9_][A-Za-z0-9_=+.-]{0,14}$`: the `awg-quick` rule with a narrower first
+character, so `awg` never reads a name as an option. A name cannot be `all` or `interfaces`, which
+`awg show` reads as keywords.
 
 ## Preshared keys
 
@@ -51,8 +51,10 @@ violation wins, lowest peer index. Why the less obvious rules exist:
 - The kernel silently moves an overlapping tunnel address to the last configured peer.
 - IPv4 only: an IPv6 peer would need IPv6 forwarding, which a new network namespace has off, and an
   IPv6 NAT rule. With one `allowed_ip` per peer it could not be dual stack either.
-- The 1000-peer limit keeps one `awg set` far below the exec argument limit and the descriptor
-  limit. A request near the 4 MB gRPC message limit would otherwise fail inside `awg` with `E2BIG`.
+- The 1000-peer limit keeps one `awg set` far below the exec argument limit. A request near the
+  4 MB gRPC message limit would otherwise fail inside `awg` with `E2BIG`. Each preshared key takes
+  one descriptor, so 1000 peers come close to the default soft limit of 1024, and the deploy
+  files raise `nofile` to 65536.
 
 ## Peers live inside the interface subnet
 
