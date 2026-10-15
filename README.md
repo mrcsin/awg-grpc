@@ -28,8 +28,11 @@ no state: after a restart the interfaces have no peers until the client applies 
 ## Running
 
 - The host loads the `amneziawg` module of the generation the image was built for
-  (`amneziawg-tools` v3.1.20260812). On a mismatch the container exits 1 at start.
-- The container needs `NET_ADMIN` only: no privileged mode, no Docker socket.
+  (`amneziawg-tools` v3.1.20260812). On an older module the container exits 1 at start. A newer
+  module passes; `module_version` in `GetStatus` shows it.
+- The only capability the container needs is `NET_ADMIN`: no privileged mode, no Docker socket.
+- Raise `nofile` to 65536. awg opens one descriptor per preshared key, and 1000 peers come close
+  to the default soft limit of 1024.
 - Images are `ghcr.io/mrcsin/awg-grpc:<tag>`, one per release. There is no `latest`.
 
 [`deploy/compose.example.yml`](deploy/compose.example.yml) is a complete service definition,
@@ -43,8 +46,13 @@ The socket is `/run/awg-grpc/awg.sock`; the interface configs are in `/etc/amnez
 | --------------------- | ------- | ------------------------------------------- |
 | `AWG_GRPC_SOCKET_GID` | unset   | socket group; unset keeps the process group |
 
-Each `<name>.conf` brings up the interface `<name>` and holds the `[Interface]` section only.
-`awg-quick` runs its `PostUp` and `PostDown` lines as root inside the container, so mount the
+Each `<name>.conf` brings up the interface `<name>`. The container does not start when:
+
+- the directory holds no `*.conf` file;
+- a name does not match `^[A-Za-z0-9_][A-Za-z0-9_=+.-]{0,14}$`, or is `all` or `interfaces`;
+- a file has a `[Peer]` section: peers come from the API only.
+
+`awg-quick` runs the `PostUp` and `PostDown` lines as root inside the container, so mount the
 directory read-only.
 
 The socket has mode `0660` and no token: any process that can open it controls every peer. Share

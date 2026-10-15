@@ -21,8 +21,8 @@ stale socket file stays until a start reaches step 5. `node.Start` runs steps 1 
 integration suite calls the same function.
 
 1. `node.Discover` lists `*.conf` in the config directory in file name order and makes each path
-   absolute, because `awg-quick` reads a bare `awg0.conf` as an interface name. It enforces the
-   config directory rules of the [README](../../README.md#configuration).
+   absolute, because `awg-quick` reads a bare `awg0.conf` as an interface name. It fails on the
+   file rules listed in the [README](../../README.md#configuration).
 2. `node.BringUp` runs `awg-quick up <path>` for every file, then checks that every interface is
    present and has at least one address.
 3. `awg --version` gives the tools version.
@@ -44,7 +44,8 @@ usher --ApplyPeers--> unix socket --> RecoverUnary --> Management.ApplyPeers
   awg show <iface> dump  --> ParseDump       --> kernel peers "before"
   reconcile.Desired(request, own key, addresses)
   reconcile.Diff(before, desired)             --> dry_run returns here
-  reconcile.BuildSet --> awg set <iface> ... + PSK pipes --> netlink --> kernel module
+  reconcile.BuildSet                          --> an empty diff returns here
+  awg set <iface> ... + PSK pipes --> netlink --> kernel module
   awg show <iface> dump  --> ParseDump       --> kernel peers "after"
   reconcile.Diff(before, after)               --> ApplyPeersResponse
 ```
@@ -59,11 +60,3 @@ each call and ignores the service name; `List` and `Watch` return `UNIMPLEMENTED
 - gRPC over HTTP and JSON: one generated schema serves both sides.
 - One socket per container: versions and health belong to the container, not to an interface.
 - The contract lives with the implementer: it is AmneziaWG-specific, so this repository owns it.
-
-## Locked decisions
-
-- One `awg set` with only the changed peers, never `setconf` or `syncconf` ([apply.md](./apply.md#awg-set-never-setconf-or-syncconf)).
-- gRPC on one socket per container, contract in this repository ([Design choices](#design-choices)).
-- Tools built from source, not taken from the vendor image ([top of this page](#awg-grpc-overview)).
-- Client parameters as opaque ordered pairs ([apply.md](./apply.md#client-parameters)).
-- The start fails on a module older than the tools ([apply.md](./apply.md#generation-probe)).

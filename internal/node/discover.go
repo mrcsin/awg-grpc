@@ -22,8 +22,8 @@ type Interface struct {
 
 const confSuffix = ".conf"
 
-// interfaceName is the awg-quick name rule ([tools] src/wg-quick/linux.bash:43) without a
-// leading '-' or '.', so a name is never read as an option.
+// interfaceName is the awg-quick name rule ([tools] src/wg-quick/linux.bash:43) with a letter,
+// digit or '_' first, so a name is never read as an option.
 var interfaceName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_=+.-]{0,14}$`)
 
 var showKeywords = map[string]bool{"all": true, "interfaces": true}
