@@ -16,7 +16,7 @@ func serveHealth(t *testing.T, h *Health) healthpb.HealthClient {
 }
 
 func TestHealthCheck(t *testing.T) {
-	configured := []string{presentIface, absentIface}
+	configured := named(presentIface, absentIface)
 	bothPresent := lookupOf(map[string]string{presentIface: "10.8.1.1/24", absentIface: "10.8.2.1/24"})
 	tests := []struct {
 		name    string

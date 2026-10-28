@@ -9,9 +9,9 @@ import (
 )
 
 // Start runs the startup steps before the socket (Discover, BringUp, awg --version, Probe on the
-// first interface). It returns the interface names in file name order and the tools version.
-func Start(ctx context.Context, runner awg.Runner, lookup func(name string) ([]netip.Prefix, bool, error), dir string) (names []string, toolsVersion string, err error) {
-	ifaces, err := Discover(dir)
+// first interface). It returns the interfaces in file name order and the tools version.
+func Start(ctx context.Context, runner awg.Runner, lookup func(name string) ([]netip.Prefix, bool, error), dir string) (ifaces []Interface, toolsVersion string, err error) {
+	ifaces, err = Discover(dir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -25,11 +25,7 @@ func Start(ctx context.Context, runner awg.Runner, lookup func(name string) ([]n
 	if err := Probe(ctx, runner, ifaces[0].Name, toolsVersion); err != nil {
 		return nil, "", err
 	}
-	names = make([]string, 0, len(ifaces))
-	for _, iface := range ifaces {
-		names = append(names, iface.Name)
-	}
-	return names, toolsVersion, nil
+	return ifaces, toolsVersion, nil
 }
 
 func readToolsVersion(ctx context.Context, runner awg.Runner) (string, error) {

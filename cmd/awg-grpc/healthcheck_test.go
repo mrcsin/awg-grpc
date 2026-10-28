@@ -38,7 +38,7 @@ func serveHealthOnSocket(t *testing.T, path string, lookup server.Lookup) {
 		t.Fatalf("listening on %s: %v", path, err)
 	}
 	srv := grpc.NewServer()
-	healthpb.RegisterHealthServer(srv, server.NewHealth(lookup, []string{"awg0"}))
+	healthpb.RegisterHealthServer(srv, server.NewHealth(lookup, []server.Interface{{Name: "awg0"}}))
 	go func() { _ = srv.Serve(lis) }()
 	t.Cleanup(srv.Stop)
 }

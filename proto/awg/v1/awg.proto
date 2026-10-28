@@ -109,6 +109,9 @@ message InterfaceStatus {
   // except PrivateKey, ListenPort and FwMark, and without keys set to 0 or off.
   // Carries HeaderProtectionKey, a secret shared with every client.
   repeated ConfigParam client_params = 7;
+  // The last MTU line of the [Interface] section of the interface config, read
+  // once at start; 0 when the config has none or its value is empty.
+  uint32 mtu = 8;
 }
 
 message ConfigParam {

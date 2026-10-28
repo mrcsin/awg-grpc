@@ -21,6 +21,9 @@ import (
 // clientParamCount is every 3.1 key of deploy/smoke/awgsmoke0.conf that GetStatus returns.
 const clientParamCount = 25
 
+// smokeMTU is the MTU line of deploy/smoke/awgsmoke0.conf.
+const smokeMTU = 1280
+
 // toolsVersion is the amneziawg-tools version the image builds. The host module must report the
 // same version; the CI kernel job builds the module that AWG_MODULE_REF in ci.yml pins.
 const toolsVersion = "3.1.20260812"
@@ -59,6 +62,9 @@ func testStatus(t *testing.T, client awgv1.ManagementServiceClient) {
 	if !iface.GetPresent() {
 		t.Fatalf("%s present = false, want true", smokeIface)
 	}
+	if mtu := iface.GetMtu(); mtu != smokeMTU {
+		t.Fatalf("%s mtu = %d, want %d", smokeIface, mtu, smokeMTU)
+	}
 	var got []string
 	for _, p := range iface.GetClientParams() {
 		got = append(got, p.GetKey())
@@ -75,7 +81,7 @@ func testStatus(t *testing.T, client awgv1.ManagementServiceClient) {
 
 func clientParamKeys(t *testing.T) []string {
 	t.Helper()
-	serverOnlyKeys := []string{"PrivateKey", "Address", "ListenPort", "PostUp", "PostDown"}
+	serverOnlyKeys := []string{"PrivateKey", "Address", "ListenPort", "MTU", "PostUp", "PostDown"}
 	content, err := os.ReadFile(filepath.Join(repoDir, "deploy", "smoke", smokeIface+".conf"))
 	if err != nil {
 		t.Fatalf("reading smoke config: %v", err)

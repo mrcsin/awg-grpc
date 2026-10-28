@@ -12,7 +12,9 @@ interface instead of failing. Its tags version the userspace implementation, not
 
 Import direction: `server` imports `reconcile` and `awg`; `reconcile` imports `awg`; `node` imports
 `awg`; `reconcile` and `server` also import `gen/awg/v1`. `awg` imports nothing internal. `node`
-takes the interface lookup as a plain function, so it does not import `server`.
+takes the interface lookup as a plain function, so it does not import `server`. `server` does not
+import `node` either: it has its own `Interface` type, and `cmd/awg-grpc` maps `node.Interface`
+to it.
 
 ## Startup
 
@@ -21,8 +23,9 @@ stale socket file stays until a start reaches step 5. `node.Start` runs steps 1 
 integration suite calls the same function.
 
 1. `node.Discover` lists `*.conf` in the config directory in file name order and makes each path
-   absolute, because `awg-quick` reads a bare `awg0.conf` as an interface name. It fails on the
-   file rules listed in the [README](../../README.md#configuration).
+   absolute, because `awg-quick` reads a bare `awg0.conf` as an interface name. It reads the `MTU`
+   line of each file, which `GetStatus` reports until the next start. It fails on the file rules
+   listed in the [README](../../README.md#configuration).
 2. `node.BringUp` runs `awg-quick up <path>` for every file, then checks that every interface is
    present and has at least one address.
 3. `awg --version` gives the tools version.
