@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net/netip"
 	"os"
-	"slices"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -26,8 +25,15 @@ type Management struct {
 	runner     awg.Runner
 	lookup     Lookup
 	versions   Versions
-	names      []string
+	ordered    []*configuredInterface
 	interfaces map[string]*configuredInterface
+}
+
+// Interface is a configured interface with the MTU line of its config, 0 without an MTU line or
+// with an empty value.
+type Interface struct {
+	Name string
+	MTU  uint32
 }
 
 // Versions is what GetStatus reports; ModuleVersionFile is read on every call.
@@ -40,21 +46,23 @@ type Versions struct {
 // configuredInterface's lock is a one-slot semaphore serializing applies; a waiting apply gives
 // up when its context ends.
 type configuredInterface struct {
-	name string
+	Interface
 	lock chan struct{}
 }
 
 // NewManagement makes GetStatus report the interfaces in the given order.
-func NewManagement(runner awg.Runner, lookup Lookup, interfaces []string, versions Versions) *Management {
+func NewManagement(runner awg.Runner, lookup Lookup, interfaces []Interface, versions Versions) *Management {
 	m := &Management{
 		runner:     runner,
 		lookup:     lookup,
 		versions:   versions,
-		names:      slices.Clone(interfaces),
+		ordered:    make([]*configuredInterface, 0, len(interfaces)),
 		interfaces: make(map[string]*configuredInterface, len(interfaces)),
 	}
-	for _, name := range interfaces {
-		m.interfaces[name] = &configuredInterface{name: name, lock: make(chan struct{}, 1)}
+	for _, iface := range interfaces {
+		ci := &configuredInterface{Interface: iface, lock: make(chan struct{}, 1)}
+		m.ordered = append(m.ordered, ci)
+		m.interfaces[iface.Name] = ci
 	}
 	return m
 }
@@ -78,7 +86,7 @@ func (m *Management) applyPeers(ctx context.Context, req *awgv1.ApplyPeersReques
 	if err != nil {
 		return reconcile.Changes{}, err
 	}
-	addrs, err := m.addresses(iface.name)
+	addrs, err := m.addresses(iface.Name)
 	if err != nil {
 		return reconcile.Changes{}, err
 	}
@@ -86,11 +94,11 @@ func (m *Management) applyPeers(ctx context.Context, req *awgv1.ApplyPeersReques
 	select {
 	case iface.lock <- struct{}{}:
 	case <-ctx.Done():
-		return reconcile.Changes{}, fmt.Errorf("waiting for the apply in progress on %s: %w", iface.name, ctx.Err())
+		return reconcile.Changes{}, fmt.Errorf("waiting for the apply in progress on %s: %w", iface.Name, ctx.Err())
 	}
 	defer func() { <-iface.lock }()
 
-	before, err := m.readDump(ctx, iface.name)
+	before, err := m.readDump(ctx, iface.Name)
 	if err != nil {
 		return reconcile.Changes{}, err
 	}
@@ -103,14 +111,14 @@ func (m *Management) applyPeers(ctx context.Context, req *awgv1.ApplyPeersReques
 		return changes, nil
 	}
 
-	cmd, ok := reconcile.BuildSet(iface.name, changes, desired, before.Peers)
+	cmd, ok := reconcile.BuildSet(iface.Name, changes, desired, before.Peers)
 	if !ok {
 		return changes, nil
 	}
 	if _, err := m.runner.Run(ctx, cmd); err != nil {
-		return reconcile.Changes{}, fmt.Errorf("applying peers to %s: %w", iface.name, err)
+		return reconcile.Changes{}, fmt.Errorf("applying peers to %s: %w", iface.Name, err)
 	}
-	after, err := m.readDump(ctx, iface.name)
+	after, err := m.readDump(ctx, iface.Name)
 	if err != nil {
 		return reconcile.Changes{}, err
 	}
@@ -134,10 +142,10 @@ func (m *Management) listPeers(ctx context.Context, name string) (awg.Device, er
 	if err != nil {
 		return awg.Device{}, err
 	}
-	if _, err := m.addresses(iface.name); err != nil {
+	if _, err := m.addresses(iface.Name); err != nil {
 		return awg.Device{}, err
 	}
-	return m.readDump(ctx, iface.name)
+	return m.readDump(ctx, iface.Name)
 }
 
 func (m *Management) GetStatus(ctx context.Context, _ *awgv1.GetStatusRequest) (*awgv1.GetStatusResponse, error) {
@@ -153,9 +161,9 @@ func (m *Management) getStatus(ctx context.Context) (*awgv1.GetStatusResponse, e
 	if err != nil {
 		return nil, err
 	}
-	interfaces := make([]*awgv1.InterfaceStatus, 0, len(m.names))
-	for _, name := range m.names {
-		st, err := m.interfaceStatus(ctx, name)
+	interfaces := make([]*awgv1.InterfaceStatus, 0, len(m.ordered))
+	for _, iface := range m.ordered {
+		st, err := m.interfaceStatus(ctx, iface)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +190,8 @@ func (m *Management) moduleVersion() (string, error) {
 }
 
 // interfaceStatus reports one configured interface; an absent one carries only its name.
-func (m *Management) interfaceStatus(ctx context.Context, name string) (*awgv1.InterfaceStatus, error) {
+func (m *Management) interfaceStatus(ctx context.Context, iface *configuredInterface) (*awgv1.InterfaceStatus, error) {
+	name := iface.Name
 	addrs, present, err := m.lookup(name)
 	if err != nil {
 		return nil, fmt.Errorf("looking up interface %s: %w", name, err)
@@ -206,6 +215,7 @@ func (m *Management) interfaceStatus(ctx context.Context, name string) (*awgv1.I
 		PeerCount:    uint32(len(device.Peers)),
 		Addresses:    awg.PrefixStrings(addrs),
 		ClientParams: params,
+		Mtu:          iface.MTU,
 	}, nil
 }
 

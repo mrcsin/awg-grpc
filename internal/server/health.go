@@ -13,19 +13,19 @@ import (
 type Health struct {
 	healthpb.UnimplementedHealthServer
 
-	lookup Lookup
-	names  []string
+	lookup     Lookup
+	interfaces []Interface
 }
 
-func NewHealth(lookup Lookup, interfaces []string) *Health {
-	return &Health{lookup: lookup, names: slices.Clone(interfaces)}
+func NewHealth(lookup Lookup, interfaces []Interface) *Health {
+	return &Health{lookup: lookup, interfaces: slices.Clone(interfaces)}
 }
 
 func (h *Health) Check(_ context.Context, _ *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
-	for _, name := range h.names {
-		_, present, err := h.lookup(name)
+	for _, iface := range h.interfaces {
+		_, present, err := h.lookup(iface.Name)
 		if err != nil {
-			return nil, toStatus(fmt.Errorf("looking up interface %s: %w", name, err))
+			return nil, toStatus(fmt.Errorf("looking up interface %s: %w", iface.Name, err))
 		}
 		if !present {
 			return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_NOT_SERVING}, nil

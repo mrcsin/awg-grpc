@@ -6,6 +6,9 @@ PrivateKey = <private key>
 # Every peer address must lie inside this subnet.
 Address = 10.8.1.1/24
 ListenPort = 51820
+# With S4 and ContentPaddingAddition below, a data packet stays within 1410 bytes over IPv4;
+# see the README, MTU.
+MTU = 1280
 
 # Obfuscation parameters, AmneziaWG 3.1. Choose your own values; GetStatus returns them in
 # client_params, and clients must use the same ones.

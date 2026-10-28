@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +38,10 @@ func testHandshake(t *testing.T, client awgv1.ManagementServiceClient) {
 
 	compose(t, "--profile", clientProfile, "up", "-d", "--wait", "client")
 	defer removeClient(t)
+
+	if got := strings.TrimSpace(compose(t, "exec", "-T", "client", "cat", "/sys/class/net/"+clientIface+"/mtu")); got != fmt.Sprint(smokeMTU) {
+		t.Fatalf("%s mtu = %s, want %d", clientIface, got, smokeMTU)
+	}
 
 	// The first packet into the tunnel starts the handshake; its reply may be lost to it.
 	stdout, stderr, err := run(composeCmd("exec", "-T", "client", "ping", "-c", "1", "-W", "5", serverTunnel))
@@ -71,6 +76,9 @@ func clientConfig(priv, psk []byte, iface *awgv1.InterfaceStatus) []byte {
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "[Interface]\nPrivateKey = %s\nAddress = %s\nListenPort = %d\n",
 		base64.StdEncoding.EncodeToString(priv), clientCIDR, clientPort)
+	if mtu := iface.GetMtu(); mtu != 0 {
+		fmt.Fprintf(&b, "MTU = %d\n", mtu)
+	}
 	for _, p := range iface.GetClientParams() {
 		fmt.Fprintf(&b, "%s = %s\n", p.GetKey(), p.GetValue())
 	}

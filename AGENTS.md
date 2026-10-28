@@ -28,10 +28,10 @@ Table-driven tests sit beside the source as `*_test.go`. Tests that need Linux (
 socket modes) carry `//go:build linux`; the integration suite carries `//go:build integration` and
 runs only inside the `integration` image stage on a host with the `amneziawg` module loaded.
 
-Tests in `internal/awg` and `internal/server` read `../../testdata`, so a test binary built with
-`go test -c` runs from its package directory. To copy the tree from macOS to a Linux host, use
-`COPYFILE_DISABLE=1 tar --no-xattrs`: plain macOS tar adds `._*.conf` AppleDouble files that
-`node.Discover` rejects.
+Tests in `cmd/awg-grpc`, `internal/awg` and `internal/server` read `../../testdata`, so a test
+binary built with `go test -c` runs from its package directory. To copy the tree from macOS to a
+Linux host, use `COPYFILE_DISABLE=1 tar --no-xattrs`: plain macOS tar adds `._*.conf` AppleDouble
+files that `node.Discover` rejects.
 
 Container smoke test of the runtime image, on the same kind of host, with Docker compose. It uses
 `deploy/compose.smoke.yml` and the interface `awgsmoke0` from `deploy/smoke/`:

@@ -11,7 +11,7 @@ import (
 )
 
 // NewGRPCServer puts RecoverUnary first in the unary chain.
-func NewGRPCServer(runner awg.Runner, lookup Lookup, interfaces []string, versions Versions, logger *slog.Logger) *grpc.Server {
+func NewGRPCServer(runner awg.Runner, lookup Lookup, interfaces []Interface, versions Versions, logger *slog.Logger) *grpc.Server {
 	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(RecoverUnary(logger)))
 	awgv1.RegisterManagementServiceServer(srv, NewManagement(runner, lookup, interfaces, versions))
 	healthpb.RegisterHealthServer(srv, NewHealth(lookup, interfaces))

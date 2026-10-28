@@ -113,13 +113,14 @@ func startIT(t *testing.T) awgv1.ManagementServiceClient {
 			t.Errorf("ip link del %s: %v: %s", itIface, err, out)
 		}
 	})
-	names, toolsVersion, err := node.Start(t.Context(), runner, NetLookup, itConfigDir)
+	discovered, toolsVersion, err := node.Start(t.Context(), runner, NetLookup, itConfigDir)
 	if err != nil {
 		t.Fatalf("node.Start: %v", err)
 	}
-	if !slices.Equal(names, []string{itIface}) {
-		t.Fatalf("node.Start interfaces = %q, want only %s", names, itIface)
+	if len(discovered) != 1 || discovered[0].Name != itIface {
+		t.Fatalf("node.Start interfaces = %+v, want only %s", discovered, itIface)
 	}
+	ifaces := []Interface{{Name: discovered[0].Name, MTU: discovered[0].MTU}}
 
 	socket := filepath.Join(t.TempDir(), "awg.sock")
 	lis, err := net.Listen("unix", socket)
@@ -127,7 +128,7 @@ func startIT(t *testing.T) awgv1.ManagementServiceClient {
 		t.Fatalf("listen: %v", err)
 	}
 	logger := slog.New(slog.NewTextHandler(t.Output(), nil))
-	srv := NewGRPCServer(runner, NetLookup, names, Versions{
+	srv := NewGRPCServer(runner, NetLookup, ifaces, Versions{
 		Wrapper:           "integration",
 		Tools:             toolsVersion,
 		ModuleVersionFile: moduleVersionFile,
@@ -372,13 +373,23 @@ func TestIntegration(t *testing.T) {
 		if want := fixture["ListenPort"]; fmt.Sprint(st.GetListenPort()) != want {
 			t.Errorf("listen port = %d, want %s", st.GetListenPort(), want)
 		}
+		if want := fixture["MTU"]; fmt.Sprint(st.GetMtu()) != want {
+			t.Errorf("mtu = %d, want %q", st.GetMtu(), want)
+		}
+		sysMTU, err := os.ReadFile(filepath.Join("/sys/class/net", itIface, "mtu"))
+		if err != nil {
+			t.Fatalf("reading the kernel MTU: %v", err)
+		}
+		if got := strings.TrimSpace(string(sysMTU)); got != fmt.Sprint(st.GetMtu()) {
+			t.Errorf("kernel mtu = %s, GetStatus mtu = %d", got, st.GetMtu())
+		}
 
 		// The fixture leaves some keys at their defaults, which showconf prints as 0 or off.
 		wantParams := make(map[string]string, len(fixture))
 		var defaults []string
 		for k, v := range fixture {
 			switch {
-			case k == "PrivateKey" || k == "Address" || k == "ListenPort":
+			case k == "PrivateKey" || k == "Address" || k == "ListenPort" || k == "MTU":
 			case v == "0" || v == "off":
 				defaults = append(defaults, k)
 			default:

@@ -49,7 +49,7 @@ func TestStart(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dir := writeDir(t, map[string]string{"awg1.conf": interfaceSection, "awg0.conf": interfaceSection})
+			dir := writeDir(t, map[string]string{"awg1.conf": interfaceSection + "MTU = 1280\n", "awg0.conf": interfaceSection})
 			runner := awgtest.NewRunner()
 			for _, name := range []string{"awg0", "awg1"} {
 				runner.Respond("awg-quick", []string{"up", filepath.Join(dir, name+".conf")}, nil, nil)
@@ -62,7 +62,7 @@ func TestStart(t *testing.T) {
 				"awg1": {netip.MustParsePrefix("10.8.2.1/24")},
 			}}
 
-			names, toolsVersion, err := Start(context.Background(), runner, lookup.lookup, dir)
+			ifaces, toolsVersion, err := Start(context.Background(), runner, lookup.lookup, dir)
 
 			var calls []string
 			for _, c := range runner.Calls() {
@@ -85,8 +85,12 @@ func TestStart(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Start() error = %v", err)
 			}
-			if want := []string{"awg0", "awg1"}; !slices.Equal(names, want) {
-				t.Errorf("names = %q, want %q", names, want)
+			want := []Interface{
+				{Name: "awg0", Path: filepath.Join(dir, "awg0.conf")},
+				{Name: "awg1", Path: filepath.Join(dir, "awg1.conf"), MTU: 1280},
+			}
+			if !slices.Equal(ifaces, want) {
+				t.Errorf("interfaces = %+v, want %+v", ifaces, want)
 			}
 			if toolsVersion != "3.1.20260812" {
 				t.Errorf("tools version = %q, want 3.1.20260812", toolsVersion)

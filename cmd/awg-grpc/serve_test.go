@@ -105,8 +105,10 @@ type startup struct {
 func newStartup(t *testing.T, edit func([]reply)) *startup {
 	t.Helper()
 	dir := t.TempDir()
-	for _, name := range []string{"awg0", "awg1"} {
-		content := "[Interface]\nListenPort = 51820\n"
+	for name, content := range map[string]string{
+		"awg0": "[Interface]\nListenPort = 51820\nMTU = 1280\n",
+		"awg1": "[Interface]\nListenPort = 51820\n",
+	} {
 		if err := os.WriteFile(filepath.Join(dir, name+".conf"), []byte(content), 0o600); err != nil {
 			t.Fatalf("writing config: %v", err)
 		}
@@ -174,6 +176,18 @@ func (s *startup) serving(t *testing.T) (cancel func() error) {
 	}
 	t.Cleanup(func() { _ = cancel() })
 	return cancel
+}
+
+func (s *startup) client(t *testing.T) (context.Context, awgv1.ManagementServiceClient) {
+	t.Helper()
+	conn, err := grpc.NewClient("unix:"+s.cfg.Socket, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dialing socket: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(stop)
+	return ctx, awgv1.NewManagementServiceClient(conn)
 }
 
 func TestRunStartupOrder(t *testing.T) {
@@ -354,14 +368,8 @@ func TestRunServesManagementAndStopsOnCancel(t *testing.T) {
 	s := newStartup(t, nil)
 	cancel := s.serving(t)
 
-	conn, err := grpc.NewClient("unix:"+s.cfg.Socket, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.Fatalf("dialing socket: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
-	defer stop()
-	_, err = awgv1.NewManagementServiceClient(conn).ListPeers(ctx, &awgv1.ListPeersRequest{InterfaceName: "awg9"})
+	ctx, client := s.client(t)
+	_, err := client.ListPeers(ctx, &awgv1.ListPeersRequest{InterfaceName: "awg9"})
 	if status.Code(err) != codes.NotFound {
 		t.Errorf("ListPeers(awg9) code = %v, want NotFound", status.Code(err))
 	}
@@ -374,19 +382,44 @@ func TestRunServesManagementAndStopsOnCancel(t *testing.T) {
 	}
 }
 
+func TestRunReportsMTU(t *testing.T) {
+	s := newStartup(t, nil)
+	for _, name := range []string{"awg0", "awg1"} {
+		s.runner.fake.Respond("awg", []string{"show", name, "dump"}, readFixture(t, "dump", "no-peers.txt"), nil)
+		s.runner.fake.Respond("awg", []string{"showconf", name}, readFixture(t, "showconf", "no-peers.conf"), nil)
+	}
+	s.serving(t)
+
+	ctx, client := s.client(t)
+	resp, err := client.GetStatus(ctx, &awgv1.GetStatusRequest{})
+	if err != nil {
+		t.Fatalf("GetStatus: %v", err)
+	}
+	var got []uint32
+	for _, iface := range resp.GetInterfaces() {
+		got = append(got, iface.GetMtu())
+	}
+	if want := []uint32{1280, 0}; !slices.Equal(got, want) {
+		t.Errorf("mtu of awg0, awg1 = %v, want %v", got, want)
+	}
+}
+
+func readFixture(t *testing.T, parts ...string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(append([]string{"..", "..", "testdata"}, parts...)...))
+	if err != nil {
+		t.Fatalf("reading fixture: %v", err)
+	}
+	return b
+}
+
 func TestRunRecoversHandlerPanic(t *testing.T) {
 	s := newStartup(t, nil)
 	s.runner.panicOn = "awg show awg0 dump"
 	cancel := s.serving(t)
 
-	conn, err := grpc.NewClient("unix:"+s.cfg.Socket, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.Fatalf("dialing socket: %v", err)
-	}
-	defer func() { _ = conn.Close() }()
-	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
-	defer stop()
-	_, err = awgv1.NewManagementServiceClient(conn).ListPeers(ctx, &awgv1.ListPeersRequest{InterfaceName: "awg0"})
+	ctx, client := s.client(t)
+	_, err := client.ListPeers(ctx, &awgv1.ListPeersRequest{InterfaceName: "awg0"})
 	if status.Code(err) != codes.Internal {
 		t.Errorf("ListPeers(awg0) with a panicking handler: code = %v, want Internal", status.Code(err))
 	}

@@ -516,7 +516,10 @@ type InterfaceStatus struct {
 	// Interface parameters for a client config, in `awg showconf` order: everything
 	// except PrivateKey, ListenPort and FwMark, and without keys set to 0 or off.
 	// Carries HeaderProtectionKey, a secret shared with every client.
-	ClientParams  []*ConfigParam `protobuf:"bytes,7,rep,name=client_params,json=clientParams,proto3" json:"client_params,omitempty"`
+	ClientParams []*ConfigParam `protobuf:"bytes,7,rep,name=client_params,json=clientParams,proto3" json:"client_params,omitempty"`
+	// The last MTU line of the [Interface] section of the interface config, read
+	// once at start; 0 when the config has none or its value is empty.
+	Mtu           uint32 `protobuf:"varint,8,opt,name=mtu,proto3" json:"mtu,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,6 +601,13 @@ func (x *InterfaceStatus) GetClientParams() []*ConfigParam {
 		return x.ClientParams
 	}
 	return nil
+}
+
+func (x *InterfaceStatus) GetMtu() uint32 {
+	if x != nil {
+		return x.Mtu
+	}
+	return 0
 }
 
 type ConfigParam struct {
@@ -696,7 +706,7 @@ const file_awg_v1_awg_proto_rawDesc = "" +
 	"\x0emodule_version\x18\x03 \x01(\tR\rmoduleVersion\x127\n" +
 	"\n" +
 	"interfaces\x18\x04 \x03(\v2\x17.awg.v1.InterfaceStatusR\n" +
-	"interfaces\"\xf6\x01\n" +
+	"interfaces\"\x88\x02\n" +
 	"\x0fInterfaceStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\apresent\x18\x02 \x01(\bR\apresent\x12\x1d\n" +
@@ -707,7 +717,8 @@ const file_awg_v1_awg_proto_rawDesc = "" +
 	"\n" +
 	"peer_count\x18\x05 \x01(\rR\tpeerCount\x12\x1c\n" +
 	"\taddresses\x18\x06 \x03(\tR\taddresses\x128\n" +
-	"\rclient_params\x18\a \x03(\v2\x13.awg.v1.ConfigParamR\fclientParams\"5\n" +
+	"\rclient_params\x18\a \x03(\v2\x13.awg.v1.ConfigParamR\fclientParams\x12\x10\n" +
+	"\x03mtu\x18\b \x01(\rR\x03mtu\"5\n" +
 	"\vConfigParam\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value2\xdc\x01\n" +

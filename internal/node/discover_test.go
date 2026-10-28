@@ -118,6 +118,56 @@ func TestDiscover(t *testing.T) {
 	}
 }
 
+func TestDiscoverMTU(t *testing.T) {
+	tests := []struct {
+		name    string
+		before  string
+		lines   string
+		wantMTU uint32
+		wantErr string
+	}{
+		{name: "upper case key", lines: "MTU = 1280\n", wantMTU: 1280},
+		{name: "lower case key", lines: "mtu = 1280\n", wantMTU: 1280},
+		{name: "no spaces and a trailing comment", lines: "MTU=1280 # path\n", wantMTU: 1280},
+		{name: "smallest value", lines: "MTU = 1\n", wantMTU: 1},
+		{name: "largest value", lines: "MTU = 4294967295\n", wantMTU: 4294967295},
+		{name: "last line wins", lines: "MTU = 1420\nMTU = 1280\n", wantMTU: 1280},
+		{name: "a bad line before the last one", lines: "MTU = abc\nMTU = 1280\n", wantMTU: 1280},
+		{name: "an empty last line resets the value", lines: "MTU = 1280\nMTU =\n", wantMTU: 0},
+		{name: "no line", wantMTU: 0},
+		{name: "commented line", lines: "# MTU = 1280\n", wantMTU: 0},
+		{name: "empty value", lines: "MTU =\n", wantMTU: 0},
+		{name: "line before the interface section", before: "MTU = abc\n", wantMTU: 0},
+		{name: "line in another section", lines: "[Other]\nMTU = abc\n", wantMTU: 0},
+		{name: "zero", lines: "MTU = 0\n", wantErr: "awg0.conf: MTU on line 5"},
+		{name: "not a number", lines: "MTU = abc\n", wantErr: "awg0.conf: MTU on line 5"},
+		{name: "a bad last line", lines: "MTU = 1280\nMTU = abc\n", wantErr: "awg0.conf: MTU on line 6"},
+		{name: "above uint32", lines: "MTU = 4294967296\n", wantErr: "awg0.conf: MTU on line 5"},
+		{name: "leading zero", lines: "MTU = 01000\n", wantErr: "awg0.conf: MTU on line 5"},
+		{name: "hexadecimal", lines: "MTU = 0x500\n", wantErr: "awg0.conf: MTU on line 5"},
+		{name: "two numbers", lines: "MTU = 1280 1420\n", wantErr: "awg0.conf: MTU on line 5"},
+		{name: "key without equals sign", lines: "MTU\n", wantErr: "awg0.conf: MTU on line 5"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := writeDir(t, map[string]string{"awg0.conf": tt.before + interfaceSection + tt.lines})
+			got, err := Discover(dir)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("Discover() = %v, %v, want error containing %q", got, err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Discover() error = %v", err)
+			}
+			if len(got) != 1 || got[0].MTU != tt.wantMTU {
+				t.Fatalf("Discover() = %+v, want one interface with MTU %d", got, tt.wantMTU)
+			}
+		})
+	}
+}
+
 func TestDiscoverMissingDirectory(t *testing.T) {
 	_, err := Discover(filepath.Join(t.TempDir(), "absent"))
 	if !errors.Is(err, os.ErrNotExist) {

@@ -114,7 +114,15 @@ func (b *syncBuffer) String() string {
 func startServer(t *testing.T, runner awg.Runner, logOut io.Writer) awgv1.ManagementServiceClient {
 	t.Helper()
 	return serveManagement(t,
-		NewManagement(runner, awg0Lookup, []string{presentIface, absentIface}, Versions{}), logOut)
+		NewManagement(runner, awg0Lookup, named(presentIface, absentIface), Versions{}), logOut)
+}
+
+func named(names ...string) []Interface {
+	ifaces := make([]Interface, 0, len(names))
+	for _, name := range names {
+		ifaces = append(ifaces, Interface{Name: name})
+	}
+	return ifaces
 }
 
 func serveManagement(t *testing.T, m *Management, logOut io.Writer) awgv1.ManagementServiceClient {
@@ -493,7 +501,7 @@ func TestApplyPeersSerializesPerInterface(t *testing.T) {
 	t.Cleanup(release)
 	client := serveManagement(t,
 		NewManagement(gate, lookupOf(map[string]string{presentIface: "10.8.1.1/24", otherIface: "10.8.2.1/24"}),
-			[]string{presentIface, otherIface}, Versions{}), io.Discard)
+			named(presentIface, otherIface), Versions{}), io.Discard)
 
 	req := &awgv1.ApplyPeersRequest{InterfaceName: presentIface, Peers: desiredPeers}
 	var wg sync.WaitGroup
@@ -565,7 +573,7 @@ func TestApplyPeersWaitingForTheLockEndsWithTheContext(t *testing.T) {
 	release := func() { releaseOnce.Do(func() { close(gate.release) }) }
 	t.Cleanup(release)
 	handlers := handlerDone{
-		Management: NewManagement(gate, awg0Lookup, []string{presentIface}, Versions{}),
+		Management: NewManagement(gate, awg0Lookup, named(presentIface), Versions{}),
 		done:       make(chan error, 2),
 	}
 	client := awgv1.NewManagementServiceClient(serveBufconn(t, io.Discard, func(srv *grpc.Server) {
@@ -663,7 +671,7 @@ func TestClientDeadlineEndsTheRunnerContext(t *testing.T) {
 			fake := awgtest.NewRunner()
 			fake.Respond("awg", dumpArgs, beforeDump, nil)
 			runner := &blockingRunner{Runner: fake, block: tt.block, seen: make(chan error, 1)}
-			m := NewManagement(runner, awg0Lookup, []string{presentIface},
+			m := NewManagement(runner, awg0Lookup, named(presentIface),
 				Versions{ModuleVersionFile: writeModuleVersion(t, "3.1.20260812\n")})
 			client := serveManagement(t, m, io.Discard)
 
@@ -836,7 +844,7 @@ func TestGetStatus(t *testing.T) {
 		ModuleVersionFile: writeModuleVersion(t, "3.1.20260812\n"),
 	}
 	client := serveManagement(t,
-		NewManagement(runner, awg0Lookup, []string{presentIface, absentIface}, versions), io.Discard)
+		NewManagement(runner, awg0Lookup, []Interface{{Name: presentIface, MTU: 1280}, {Name: absentIface, MTU: 1500}}, versions), io.Discard)
 
 	resp, err := client.GetStatus(context.Background(), &awgv1.GetStatusRequest{})
 	if err != nil {
@@ -870,6 +878,7 @@ func TestGetStatus(t *testing.T) {
 			PeerCount:    5,
 			Addresses:    []string{"10.8.1.1/24"},
 			ClientParams: params,
+			Mtu:          1280,
 		},
 		{Name: absentIface},
 	}
@@ -898,6 +907,21 @@ func TestGetStatus(t *testing.T) {
 	}
 }
 
+func TestGetStatusWithoutMTU(t *testing.T) {
+	m := NewManagement(statusRunner(t), awg0Lookup, named(presentIface),
+		Versions{ModuleVersionFile: writeModuleVersion(t, "3.1.20260812\n")})
+	resp, err := serveManagement(t, m, io.Discard).GetStatus(context.Background(), &awgv1.GetStatusRequest{})
+	if err != nil {
+		t.Fatalf("GetStatus: %v", err)
+	}
+	if len(resp.GetInterfaces()) != 1 {
+		t.Fatalf("interfaces = %d, want 1", len(resp.GetInterfaces()))
+	}
+	if got := resp.GetInterfaces()[0]; !got.GetPresent() || got.GetMtu() != 0 {
+		t.Errorf("interface = %v, want present with mtu 0", got)
+	}
+}
+
 func TestGetStatusModuleVersion(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -923,7 +947,7 @@ func TestGetStatusModuleVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := NewManagement(statusRunner(t), awg0Lookup, []string{presentIface},
+			m := NewManagement(statusRunner(t), awg0Lookup, named(presentIface),
 				Versions{ModuleVersionFile: tt.path(t)})
 			client := serveManagement(t, m, io.Discard)
 			resp, err := client.GetStatus(context.Background(), &awgv1.GetStatusRequest{})
@@ -976,7 +1000,7 @@ func TestGetStatusErrors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			runner := awgtest.NewRunner()
 			tt.respond(runner)
-			m := NewManagement(runner, awg0Lookup, []string{presentIface},
+			m := NewManagement(runner, awg0Lookup, named(presentIface),
 				Versions{ModuleVersionFile: writeModuleVersion(t, "3.1.20260812\n")})
 			client := serveManagement(t, m, io.Discard)
 			_, err := client.GetStatus(context.Background(), &awgv1.GetStatusRequest{})

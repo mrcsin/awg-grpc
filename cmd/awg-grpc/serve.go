@@ -33,9 +33,13 @@ func serve(cfg config, logger *slog.Logger) int {
 // run returns every startup failure before the socket exists. Interfaces stay up after it
 // returns, because they live in the container network namespace.
 func run(ctx context.Context, cfg config, runner awg.Runner, lookup server.Lookup, logger *slog.Logger) error {
-	names, toolsVersion, err := node.Start(ctx, runner, lookup, cfg.ConfigDir)
+	discovered, toolsVersion, err := node.Start(ctx, runner, lookup, cfg.ConfigDir)
 	if err != nil {
 		return err
+	}
+	ifaces := make([]server.Interface, 0, len(discovered))
+	for _, d := range discovered {
+		ifaces = append(ifaces, server.Interface{Name: d.Name, MTU: d.MTU})
 	}
 
 	lis, err := listen(cfg)
@@ -43,7 +47,7 @@ func run(ctx context.Context, cfg config, runner awg.Runner, lookup server.Looku
 		return err
 	}
 
-	srv := server.NewGRPCServer(runner, lookup, names, server.Versions{
+	srv := server.NewGRPCServer(runner, lookup, ifaces, server.Versions{
 		Wrapper:           version,
 		Tools:             toolsVersion,
 		ModuleVersionFile: moduleVersionFile,
@@ -51,7 +55,7 @@ func run(ctx context.Context, cfg config, runner awg.Runner, lookup server.Looku
 
 	served := make(chan error, 1)
 	go func() { served <- srv.Serve(lis) }()
-	logger.Info("serving", "socket", cfg.Socket, "interfaces", names, "wrapper_version", version, "tools_version", toolsVersion)
+	logger.Info("serving", "socket", cfg.Socket, "interfaces", ifaces, "wrapper_version", version, "tools_version", toolsVersion)
 
 	select {
 	case <-ctx.Done():
